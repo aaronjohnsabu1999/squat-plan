@@ -25,7 +25,7 @@ v_f = [] # final velocity
 # 3D
 for _ in range(3):
     # initialize varibales
-    a.append(m.Var(value=0, lb=-1, ub=1))
+    a.append(m.Var(value=None, lb=-1, ub=1, fixed_initial=False))
     v.append(m.Var(value=0))
     p.append(m.Var(value=0))
 

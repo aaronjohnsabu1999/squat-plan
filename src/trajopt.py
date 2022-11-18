@@ -49,8 +49,11 @@ def trajopt(obstacles):
 
   M = 10
   J = np.diag([5, 3, 2])
-  P_F = [10, 10, 10]
+  P_F = [2, 1, 1]
   
+  q.append(m.Var(value=1))
+  q_f.append(m.Var(value=1))
+
   for _ in range(3):
     # initialize variables
     # a.append(m.Var(value=0))
@@ -68,9 +71,6 @@ def trajopt(obstacles):
     v_f.append(m.Var())
     q_f.append(m.Var())
     w_f.append(m.Var())
-
-  q.append(m.Var(value=0))
-  q_f.append(m.Var(value=0))
 
   # end constraints
   m.Equations(p_f[i] == P_F[i] for i in range(0, len(p_f)))
@@ -95,7 +95,7 @@ def trajopt(obstacles):
                                                                                           w))[i])
     
     # set up end constraints
-    # m.Connection(p[i], p_f[i], 'end', 'end')
+    m.Connection(p[i], p_f[i], 'end', 'end')
     # m.Connection(v[i], v_f[i], 'end', 'end')
     # m.Connection(q[i], q_f[i], 'end', 'end')
     # m.Connection(w[i], w_f[i], 'end', 'end')
@@ -109,7 +109,9 @@ def trajopt(obstacles):
   # minimize control input
   m.Minimize(F_B[2]**2 + M_B[2]**2)
   
-  m.options.IMODE = 6 # control
+  m.options.IMODE  = 6 # control
+  m.options.SOLVER = 3 # IPOPT
+  m.options.MAX_ITER = 250
   try:
     m.solve()
     success = 1
@@ -117,16 +119,16 @@ def trajopt(obstacles):
     print('Failed to solve')
     success = 0
   
-  pos, vel, frc = [], [], []
+  pos, vel, force = [], [], []
   if success:
     for i in range(3):
-      pos.append([p[i].value[k] for k in range(nt)])
-      vel.append([v[i].value[k] for k in range(nt)])
-    frc.append([F_B[2].value[k] for k in range(nt)])
+      pos.append([p  [i].value[k] for k in range(nt)])
+      vel.append([v  [i].value[k] for k in range(nt)])
+    force.append([F_B[2].value[k] for k in range(nt)])
   else:
     for i in range(3):
       pos.append([0 for k in range(nt)])
       vel.append([0 for k in range(nt)])
-    frc.append([0 for k in range(nt)])
+    force.append([0 for k in range(nt)])
   
-  return m.time, pos, vel, frc
+  return m.time, pos, vel, force

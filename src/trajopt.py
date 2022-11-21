@@ -15,26 +15,38 @@
 # PACKAGE IMPORTS
 import numpy    as np
 from gekko      import GEKKO
-from quaternion import quat_mult, quat_conj, quat_rot
+from quaternion import quat_mult, quat_conj
 
 # CLASS DEFINITIONS
 class Obstacle:
-  def __init__(self, type, x, y, z, r):
+  def __init__(self, type, params):
     self.type = type
-    self.x = x
-    self.y = y
-    self.z = z
-    self.r = r
+    self.params = params
+    
+  def function(self, x, y, z):
+    if self.type == 'sphere':
+      return (x - self.params['x'])**2 + (y - self.params['y'])**2 + (z - self.params['z'])**2 - self.params['r']**2
+    elif self.type == 'cylinder':
+      return (x - self.params['x'])**2 + (y - self.params['y'])**2 - self.params['r']**2
 
 # FUNCTION DEFINITIONS
-def trajopt(obstacles):
+def trajopt(solverParams, systemParams, obstacles):
+  numStep = solverParams['numStep']
+  totTime = solverParams['totTime']
+
+  K_f = systemParams['K_f']
+  K_m = systemParams['K_m']
+  M   = systemParams['M']
+  J   = systemParams['J']
+  P_I = systemParams['P_I']
+  P_F = systemParams['P_F']
+  F_I = [0, 0, - M * 9.81]
+  
   m = GEKKO()
-  nt = 100
-  m.time = np.linspace(0, 10, nt)
+  m.time = np.linspace(0, totTime, numStep)
 
   p = [] # linear position
   v = [] # linear velocity
-  # a = [] # linear acceleration
   q = [] # angular position
   w = [] # angular velocity
 
@@ -47,12 +59,6 @@ def trajopt(obstacles):
   q_f = [] # final angular position
   w_f = [] # final angular velocity
 
-  M = 1
-  J = np.diag([1, 1, 1])
-  P_I = [ 0,  0,  0]
-  P_F = [10, 10, 10]
-  F_I = [0, 0, - M * 9.81]
-  
   q.append(m.Var(value=1))
   q_f.append(m.Var(value=1))
   
@@ -77,6 +83,8 @@ def trajopt(obstacles):
     q_f.append(m.Var())
     w_f.append(m.Var())
 
+  p[2].lower = 0
+  
   # end constraints
   m.Equations(p_f[i] == P_F[i] for i in range(0, len(p_f)))
   m.Equations(v_f[i] == 0      for i in range(0, len(v_f)))
@@ -96,11 +104,11 @@ def trajopt(obstacles):
                                                                      - np.cross(w,
                                                                                 np.matmul(J,
                                                                                           w))[i])
-      
-  # spherical obstacles
-  # for obstacle in obstacles:
-  #   if obstacle.type == 'sphere':
-  #     m.Equation((p[0] - obstacle.x)**2 + (p[1] - obstacle.y)**2 + (p[2] - obstacle.z)**2  >= obstacle.r**2)
+  
+  obstacle_check = True
+  if obstacle_check:
+    for obstacle in obstacles:
+      eqs.append(obstacle.function(p[0], p[1], p[2]) >= 0)
   eqs = m.Equations(eqs)
 
   # set up end constraints
@@ -111,13 +119,12 @@ def trajopt(obstacles):
     # m.Connection(w[i], w_f[i], 'end', 'end')
     # m.fix(p[i], pos = len(m.time)-1, val = P_F[i])
 
-
   # minimize control input
-  m.Minimize(f_B[2]**2 + m_B[2]**2)
+  m.Minimize(K_f*f_B[2]**2 + K_m*m_B[2]**2)
   
   m.options.IMODE  = 6 # control
   m.options.SOLVER = 3 # IPOPT
-  m.options.MAX_ITER = 250
+  m.options.MAX_ITER = 400
   try:
     m.solve()
     success = 1
@@ -128,15 +135,15 @@ def trajopt(obstacles):
   pos, vel, mom, force = [], [], [], []
   if success:
     for i in range(3):
-      pos.append([p  [i].value[k] for k in range(nt)])
-      vel.append([v  [i].value[k] for k in range(nt)])
-      mom.append([m_B[i].value[k] for k in range(nt)])
-    force.append([f_B[2].value[k] for k in range(nt)])
+      pos.append([p  [i].value[k] for k in range(numStep)])
+      vel.append([v  [i].value[k] for k in range(numStep)])
+      mom.append([m_B[i].value[k] for k in range(numStep)])
+    force.append([f_B[2].value[k] for k in range(numStep)])
   else:
     for i in range(3):
-      pos.append([0 for k in range(nt)])
-      vel.append([0 for k in range(nt)])
-      mom.append([0 for k in range(nt)])
-    force.append([0 for k in range(nt)])
+      pos.append([0 for k in range(numStep)])
+      vel.append([0 for k in range(numStep)])
+      mom.append([0 for k in range(numStep)])
+    force.append([0 for k in range(numStep)])
   
   return m.time, pos, vel, mom, force

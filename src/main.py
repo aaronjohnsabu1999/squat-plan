@@ -22,11 +22,11 @@ if __name__ == '__main__':
   obstacles.append(Obstacle('sphere', 1, 1, 1, 1))
   obstacles.append(Obstacle('sphere', 8, 8, 8, 2))
   
-  time, pos, vel, F_B = trajopt(obstacles)
+  time, pos, vel, mom, F_B = trajopt(obstacles)
   
   # get additional solution information
   # import json
   # with open(m.path+'//results.json') as f:
   #     results = json.load(f)
   
-  plotter(time, pos, vel, F_B, obstacles)
+  plotter(time, pos, vel, mom, F_B, obstacles)

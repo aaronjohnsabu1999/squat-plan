@@ -36,7 +36,7 @@ def plotter(time, pos, vel, mom, F_B, obstacles):
   
   plt.figure()
   ax = plt.axes(projection='3d')
-  ax.plot3D(pos[0], pos[1], pos[2])
+  ax.plot3D(pos[0], pos[1], pos[2], 'red')
   for obstacle in obstacles:
     if obstacle.type == 'sphere':
       plot_sphere  (ax, obstacle.params['x'], obstacle.params['y'], obstacle.params['z'], obstacle.params['r'])

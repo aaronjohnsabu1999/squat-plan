@@ -16,16 +16,18 @@ from trajopt import Obstacle
 random.seed(0)
 
 # FUNCTION DEFINITIONS
-def genRandomForest(numObs, excluded_points):
+def genRandomForest(numObs, boundaryPoints, maxRad = 4.0, minRad = 0.5):
+  P_I, P_F = boundaryPoints
   obstacles = []
-  for i in range(numObs):
-    x = random.random() * 10
-    y = random.random() * 10
-    z = random.random() * 10
-    r = random.random() * 2
-    obstacles.append(Obstacle('sphere', {'x': x, 'y': y, 'z': z, 'r': r}))
+  while len(obstacles) < numObs:
+    for i in range(numObs-len(obstacles)):
+      x = random.random() * (P_F[0] - P_I[0]) + P_I[0]
+      y = random.random() * (P_F[1] - P_I[1]) + P_I[1]
+      z = random.random() * (P_F[2] - P_I[2]) + P_I[2]
+      r = random.random() * (maxRad - minRad) + minRad
+      obstacles.append(Obstacle('sphere', {'x': x, 'y': y, 'z': z, 'r': r}))
     for obstacle in obstacles:
-      for point in excluded_points:
+      for point in boundaryPoints:
         if obstacle.function(point[0], point[1], point[2]) < 0:
           obstacles.remove(obstacle)
           break

@@ -20,24 +20,34 @@ from forester import genRandomForest
 
 # MAIN PROGRAM
 if __name__ == '__main__':
-  numStep = 150
-  totTime = 20
-  solverParams = {'numStep': numStep, 'totTime': totTime}
+  numStep = 125
+  totTime = 30
+  maxIter = 400
+  solverParams  = {'numStep': numStep, 'totTime': totTime, 'maxIter': maxIter}
   
-  K_f =  0.01
-  K_m = 10
   M = 10
   J = np.diag([0.1, 0.1, 0.1])
+  systemParams  = {'M': M, 'J': J}
+  
   P_I = [ 0,  0,  0]
   P_F = [10, 10, 10]
-  systemParams = {'K_f': K_f, 'K_m': K_m, 'M': M, 'J': J, 'P_I': P_I, 'P_F': P_F}
-
-  obstacles = genRandomForest(15, [P_I, P_F])
-  # obstacles.append(Obstacle('sphere',   {'x': 1, 'y': 1, 'z': 1, 'r': 1}))
-  # obstacles.append(Obstacle('sphere',   {'x': 8, 'y': 8, 'z': 8, 'r': 2}))
-  # obstacles.append(Obstacle('cylinder', {'x': 5, 'y': 5, 'z': 0, 'r': 2}))
+  V_F = [ 0,  0,  0]
+  Q_F = [ 1,  0,  0,  0]
+  W_F = [ 0,  0,  0]
+  boundaryCons  = {'P_I': P_I, 'P_F': P_F, 'V_F': V_F, 'Q_F': Q_F, 'W_F': W_F}
   
-  time, pos, vel, mom, F_B = trajopt(solverParams, systemParams, obstacles)
+  K_f =  0.03
+  K_m = 10.00
+  K_p =  0.05
+  K_v =  0.10
+  controlParams = {'K_f': K_f, 'K_m': K_m, 'K_p': K_p, 'K_v': K_v}
+
+  numObs = 20
+  minRad =  1.5
+  maxRad =  0.5
+  obstacles = genRandomForest(numObs, [P_I, P_F], maxRad, minRad)
+  
+  time, pos, vel, mom, F_B = trajopt(solverParams, systemParams, boundaryCons, controlParams, obstacles)
   
   # get additional solution information
   # import json

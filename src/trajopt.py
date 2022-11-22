@@ -30,16 +30,19 @@ class Obstacle:
       return (x - self.params['x'])**2 + (y - self.params['y'])**2 - self.params['r']**2
 
 # FUNCTION DEFINITIONS
-def trajopt(solverParams, systemParams, obstacles):
+def trajopt(solverParams, systemParams, boundaryCons, controlParams, obstacles):
   numStep = solverParams['numStep']
   totTime = solverParams['totTime']
+  maxIter = solverParams['maxIter']
 
-  K_f = systemParams['K_f']
-  K_m = systemParams['K_m']
   M   = systemParams['M']
   J   = systemParams['J']
-  P_I = systemParams['P_I']
-  P_F = systemParams['P_F']
+
+  P_I = boundaryCons['P_I']
+  P_F = boundaryCons['P_F']
+  V_F = boundaryCons['V_F']
+  Q_F = boundaryCons['Q_F']
+  W_F = boundaryCons['W_F']
   F_I = [0, 0, - M * 9.81]
   
   m = GEKKO()
@@ -87,12 +90,9 @@ def trajopt(solverParams, systemParams, obstacles):
   
   # end constraints
   m.Equations(p_f[i] == P_F[i] for i in range(0, len(p_f)))
-  m.Equations(v_f[i] == 0      for i in range(0, len(v_f)))
-  m.Equations(q_f[i] == 0      for i in range(1, len(q_f)))
-  m.Equations(w_f[i] == 0      for i in range(0, len(w_f)))
-
-  # m.Equation(f_B[0] == 0)
-  # m.Equation(f_B[1] == 0)
+  m.Equations(v_f[i] == V_F[i] for i in range(0, len(v_f)))
+  # m.Equations(q_f[i] == Q_F[i] for i in range(0, len(q_f)))
+  # m.Equations(w_f[i] == W_F[i] for i in range(0, len(w_f)))
 
   eqs = []
   for i in range(3):
@@ -114,17 +114,23 @@ def trajopt(solverParams, systemParams, obstacles):
   # set up end constraints
   for i in range(3):
     m.Connection(p[i], p_f[i], 'end', 'end')
-    # m.Connection(v[i], v_f[i], 'end', 'end')
+    m.Connection(v[i], v_f[i], 'end', 'end')
     # m.Connection(q[i], q_f[i], 'end', 'end')
     # m.Connection(w[i], w_f[i], 'end', 'end')
-    # m.fix(p[i], pos = len(m.time)-1, val = P_F[i])
 
   # minimize control input
-  m.Minimize(K_f*f_B[2]**2 + K_m*m_B[2]**2)
+  K_f = controlParams['K_f']
+  K_m = controlParams['K_m']
+  K_p = controlParams['K_p']
+  K_v = controlParams['K_v']
+  m.Minimize(K_f*f_B[2]**2
+          + K_m*m_B[2]**2
+          + K_p*np.sum([(p[i]-P_F[i])**2 for i in range(len(p))])
+          + K_v*np.sum([(v[i]-V_F[i])**2 for i in range(len(v))]))
   
   m.options.IMODE  = 6 # control
   m.options.SOLVER = 3 # IPOPT
-  m.options.MAX_ITER = 400
+  m.options.MAX_ITER = maxIter
   try:
     m.solve()
     success = 1

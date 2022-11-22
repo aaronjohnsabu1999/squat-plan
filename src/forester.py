@@ -13,10 +13,10 @@
 # PACKAGE IMPORTS
 import random
 from trajopt import Obstacle
-random.seed(0)
 
 # FUNCTION DEFINITIONS
-def genRandomForest(numObs, boundaryPoints, maxRad = 4.0, minRad = 0.5):
+def genRandomForest(numObs, boundaryPoints, maxRad = 4.0, minRad = 0.5, seed = 0):
+  random.seed(seed)
   P_I, P_F = boundaryPoints
   obstacles = []
   while len(obstacles) < numObs:

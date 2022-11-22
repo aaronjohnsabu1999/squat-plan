@@ -62,6 +62,8 @@ def trajopt(solverParams, systemParams, boundaryCons, controlParams, obstacles):
   q_f = [] # final angular position
   w_f = [] # final angular velocity
 
+  q_norm = m.Intermediate(0)
+
   q.append(m.Var(value=1))
   q_f.append(m.Var(value=1))
   
@@ -91,8 +93,8 @@ def trajopt(solverParams, systemParams, boundaryCons, controlParams, obstacles):
   # end constraints
   m.Equations(p_f[i] == P_F[i] for i in range(0, len(p_f)))
   m.Equations(v_f[i] == V_F[i] for i in range(0, len(v_f)))
-  # m.Equations(q_f[i] == Q_F[i] for i in range(0, len(q_f)))
-  # m.Equations(w_f[i] == W_F[i] for i in range(0, len(w_f)))
+  m.Equations(q_f[i] == Q_F[i] for i in range(0, len(q_f)))
+  m.Equations(w_f[i] == W_F[i] for i in range(0, len(w_f)))
 
   eqs = []
   for i in range(3):
@@ -104,6 +106,7 @@ def trajopt(solverParams, systemParams, boundaryCons, controlParams, obstacles):
                                                                      - np.cross(w,
                                                                                 np.matmul(J,
                                                                                           w))[i])
+    eqs.append(q[0]**2 + q[1]**2 + q[2]**2 + q[3]**2 == 1)
   
   obstacle_check = True
   if obstacle_check:
@@ -115,8 +118,8 @@ def trajopt(solverParams, systemParams, boundaryCons, controlParams, obstacles):
   for i in range(3):
     m.Connection(p[i], p_f[i], 'end', 'end')
     m.Connection(v[i], v_f[i], 'end', 'end')
-    # m.Connection(q[i], q_f[i], 'end', 'end')
-    # m.Connection(w[i], w_f[i], 'end', 'end')
+    m.Connection(q[i+1], q_f[i+1], 'end', 'end')
+    m.Connection(w[i], w_f[i], 'end', 'end')
 
   # minimize control input
   K_f = controlParams['K_f']
@@ -131,6 +134,8 @@ def trajopt(solverParams, systemParams, boundaryCons, controlParams, obstacles):
   m.options.IMODE  = 6 # control
   m.options.SOLVER = 3 # IPOPT
   m.options.MAX_ITER = maxIter
+  # m.options.OTOL = 1e-4
+  # m.options.RTOL = 1e-4
   try:
     m.solve()
     success = 1
@@ -138,18 +143,25 @@ def trajopt(solverParams, systemParams, boundaryCons, controlParams, obstacles):
     print('Failed to solve')
     success = 0
   
-  pos, vel, mom, force = [], [], [], []
+  force, mom, pos, vel, omg, quat = [], [], [], [], [], []
   if success:
+    force.append( [f_B[2].value[k] for k in range(numStep)])
     for i in range(3):
-      pos.append([p  [i].value[k] for k in range(numStep)])
-      vel.append([v  [i].value[k] for k in range(numStep)])
-      mom.append([m_B[i].value[k] for k in range(numStep)])
-    force.append([f_B[2].value[k] for k in range(numStep)])
+      mom.append( [m_B[i].value[k] for k in range(numStep)])
+      pos.append( [p  [i].value[k] for k in range(numStep)])
+      vel.append( [v  [i].value[k] for k in range(numStep)])
+      omg.append( [w  [i].value[k] for k in range(numStep)])
+    for i in range(4):
+      quat.append([q  [i].value[k] for k in range(numStep)])
+    
   else:
+    force.append( [0 for k in range(numStep)])
     for i in range(3):
-      pos.append([0 for k in range(numStep)])
-      vel.append([0 for k in range(numStep)])
-      mom.append([0 for k in range(numStep)])
-    force.append([0 for k in range(numStep)])
+      mom.append( [0 for k in range(numStep)])
+      pos.append( [0 for k in range(numStep)])
+      vel.append( [0 for k in range(numStep)])
+      omg.append( [0 for k in range(numStep)])
+    for i in range(4):
+      quat.append([0 for k in range(numStep)])
   
-  return m.time, pos, vel, mom, force
+  return m.time, force, mom, pos, vel, omg, quat

@@ -31,7 +31,7 @@ def plot_cylinder(ax, x, y, z, r):
   z = z + v
   ax.plot_surface(x, y, z, cmap=plt.cm.YlGnBu_r)
 
-def plotter(time, pos, vel, mom, F_B, obstacles):
+def plotter(time, pos, vel, quat, omg, F_B, mom, obstacles):
   axes = ['x', 'y', 'z']
   
   plt.figure()
@@ -45,7 +45,7 @@ def plotter(time, pos, vel, mom, F_B, obstacles):
   
   plt.figure()
   
-  plt.subplot(4,1,1)
+  plt.subplot(6,1,1)
   for i in range(3):
     plt.plot(time, pos[i], '-', label='p_'+axes[i])
   plt.grid()
@@ -53,7 +53,7 @@ def plotter(time, pos, vel, mom, F_B, obstacles):
   plt.xlabel('Time')
   plt.legend(loc='best')
 
-  plt.subplot(4,1,2)
+  plt.subplot(6,1,2)
   for i in range(3):
     plt.plot(time, vel[i], '-', label='v_'+axes[i])
   plt.grid()
@@ -61,13 +61,34 @@ def plotter(time, pos, vel, mom, F_B, obstacles):
   plt.xlabel('Time')
   plt.legend(loc='best')
 
-  plt.subplot(4,1,3)
+  plt.subplot(6,1,3)
+  for i in range(4):
+    plt.plot(time, quat[i], '-', label='q_'+str(i))
+  q_norm = []
+  for t in range(len(quat[0])):
+    q_norm.append(np.linalg.norm([quat[i][t] for i in range(4)]))
+  plt.plot(time, q_norm, '-.', label='||q||')
+  plt.grid()
+  plt.ylabel('Rotation (Quaternion)')
+  plt.xlabel('Time')
+  plt.legend(loc='best')
+
+  plt.subplot(6,1,4)
+  for i in range(3):
+    plt.plot(time, omg[i], '-', label='w_'+axes[i])
+  plt.grid()
+  plt.ylabel('Angular Velocity')
+  plt.xlabel('Time')
+  plt.legend(loc='best')
+
+  plt.subplot(6,1,5)
   plt.plot(time, F_B[0], '-', label='F_B', drawstyle='steps-post')
   plt.grid()
-  plt.legend(loc='best')
   plt.ylabel('Thrust')
+  plt.xlabel('Time')
+  plt.legend(loc='best')
   
-  plt.subplot(4,1,4)
+  plt.subplot(6,1,6)
   for i in range(3):
     plt.plot(time, mom[i], '-', label='M_B'+axes[i])
   plt.grid()

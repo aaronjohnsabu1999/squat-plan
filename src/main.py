@@ -20,9 +20,9 @@ from forester import genRandomForest
 
 # MAIN PROGRAM
 if __name__ == '__main__':
-  numStep = 125
-  totTime = 30
-  maxIter = 400
+  numStep = 100
+  totTime = 10
+  maxIter = 2000
   solverParams  = {'numStep': numStep, 'totTime': totTime, 'maxIter': maxIter}
   
   M = 10
@@ -36,22 +36,22 @@ if __name__ == '__main__':
   W_F = [ 0,  0,  0]
   boundaryCons  = {'P_I': P_I, 'P_F': P_F, 'V_F': V_F, 'Q_F': Q_F, 'W_F': W_F}
   
-  K_f =  0.03
+  K_f =  0.01
   K_m = 10.00
-  K_p =  0.05
-  K_v =  0.10
+  K_p =  0.00
+  K_v =  0.00
   controlParams = {'K_f': K_f, 'K_m': K_m, 'K_p': K_p, 'K_v': K_v}
 
-  numObs = 20
+  numObs =  0
   minRad =  1.5
   maxRad =  0.5
-  obstacles = genRandomForest(numObs, [P_I, P_F], maxRad, minRad)
+  obstacles = genRandomForest(numObs, [P_I, P_F], maxRad, minRad, seed = 2)
   
-  time, pos, vel, mom, F_B = trajopt(solverParams, systemParams, boundaryCons, controlParams, obstacles)
+  time, F_B, mom, pos, vel, omg, quat = trajopt(solverParams, systemParams, boundaryCons, controlParams, obstacles)
   
   # get additional solution information
   # import json
   # with open(m.path+'//results.json') as f:
   #     results = json.load(f)
   
-  plotter(time, pos, vel, mom, F_B, obstacles)
+  plotter(time, pos, vel, quat, omg, F_B, mom, obstacles)

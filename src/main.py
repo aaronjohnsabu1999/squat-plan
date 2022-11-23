@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
         state = traj.state(min(t - t_offset, config.MPC_TIME_HORIZON))
 
-        viz.update_vehicle(*state[0], config.COLLISION_RADIUS, config.SENSING_HORIZON)
+        viz.update_vehicle(*state[0], config.COLLISION_RADIUS, config.SENSING_HORIZON, config.SENSING_HORIZON_CONSERVATIVE)
 
         if find_new_traj:
             trajopt_thread = Thread(target=run_trajopt)

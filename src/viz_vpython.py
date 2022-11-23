@@ -83,7 +83,7 @@ def update_smooth_path(x, y, z):
     obj = make_path(x, y, z, color=vector(0,0,1))
     update_obj(obj, 'smooth_path')
 
-def update_vehicle(x, y, z, collision_r, sense_r):
+def update_vehicle(x, y, z, collision_r, sense_r, plan_r):
     obj = make_ellipsoid(x, y, z, collision_r, collision_r, collision_r)
     obj.color = vector(1,0,1)
     update_obj(obj, 'vehicle')
@@ -92,6 +92,11 @@ def update_vehicle(x, y, z, collision_r, sense_r):
     obj.color = vector(1,0,1)
     obj.opacity = 0.25
     update_obj(obj, 'sensing_horizon')
+
+    obj = make_ellipsoid(x, y, z, plan_r, plan_r, plan_r)
+    obj.color = vector(1,0,1)
+    obj.opacity = 0.125
+    update_obj(obj, 'planning_radius')
 
 def update_goal(x, y, z):
     obj = make_ellipsoid(x, y, z, 0.2, 0.2, 0.2)

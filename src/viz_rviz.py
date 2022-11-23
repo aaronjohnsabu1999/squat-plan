@@ -140,7 +140,7 @@ def update_smooth_path(x, y, z):
     marker.color.b = 1.0
     markers['smooth_path'] = [marker]
 
-def update_vehicle(x, y, z, collision_r, sense_r):
+def update_vehicle(x, y, z, collision_r, sense_r, plan_r):
     marker = new_marker('vehicle')
     make_ellipsoid(marker, x, y, z, collision_r, collision_r, collision_r)
     marker.color.r = 1.0
@@ -153,6 +153,13 @@ def update_vehicle(x, y, z, collision_r, sense_r):
     marker.color.b = 1.0
     marker.color.a = 0.25
     markers['sensing_horizon'] = [marker]
+
+    marker = new_marker('planning_radius')
+    make_ellipsoid(marker, x, y, z, plan_r, plan_r, plan_r)
+    marker.color.r = 1.0
+    marker.color.b = 1.0
+    marker.color.a = 0.125
+    markers['planning_radius'] = [marker]
 
 def update_goal(x, y, z):
     marker = new_marker('goal')

@@ -14,6 +14,7 @@ class Problem:
         self.m.options.IMODE = 6 # dynamic control, "simultaneous" approach (see https://gekko.readthedocs.io/en/latest/imode.html and https://people.eecs.berkeley.edu/~pabbeel/cs287-fa09/readings/DiehlFerreauHaverbeke_mpc-overview.pdf)
         self.m.options.SOLVER = solver
         self.m.options.MAX_ITER = 1000
+        self.m.options.MAX_TIME = 2 * config.MPC_EXPECTED_SOLVE_TIME
 
         # Choose max and abs functions (can be max2/abs2 or max3/abs3)
         # Only APOPT can use max3/abs3 because they require mixed integer programming, but max2/abs2 seem to yield more optimal solutions anyway.
@@ -100,19 +101,12 @@ class Problem:
         self.m.Equation((self.p[0]-p_cur[0])**2 + (self.p[1]-p_cur[1])**2 + (self.p[2]-p_cur[2])**2 <= config.SENSING_HORIZON_CONSERVATIVE**2)
 
     def add_final_state_objective(self, p_d):
-        # TODO play around with this. Some ideas:
-        #  - Always use squared distance from goal and scale so that the slope is consistent.
-        #  - ...
+        # minimize squared distance to goal
+        normalization = 2 * np.linalg.norm(self.p_init - p_d) # keep the slope consistent at the initial position
+        normalization = max(normalization, 1e-2)
+        final_state_cost = ((self.p[0]-p_d[0])**2 + (self.p[1]-p_d[1])**2 + (self.p[2]-p_d[2])**2) / normalization
 
-        if (np.linalg.norm(self.p_init - p_d) <= config.SENSING_HORIZON_CONSERVATIVE):
-            # use squared distance from goal when it's in the sensing horizon
-            K = 1000000 # weight of final state cost relative to control cost (TODO tune)
-            final_state_cost = (self.p[0]-p_d[0])**2 + (self.p[1]-p_d[1])**2 + (self.p[2]-p_d[2])**2
-        else:
-            dir = (p_d - self.p_init) / np.linalg.norm(p_d - self.p_init) # unit vector pointing towards goal
-            K = 1000000 # weight of final state cost relative to control cost
-            final_state_cost = -(self.p[0]*dir[0] + self.p[1]*dir[1] + self.p[2]*dir[2]) # constant slope in direction of goal
-
+        K = 100000 # weight of final state cost relative to control cost
         self.m.Minimize(K*final_state_cost*self.final)
 
 
@@ -130,7 +124,7 @@ class Problem:
             aN = self.a[d].value[config.MPC_NUM_TIME_STEPS]
             jN = self.j[d].value[config.MPC_NUM_TIME_STEPS]
             dt = config.MPC_TIME_HORIZON / config.MPC_NUM_TIME_STEPS
-            traj_components.append(fit_snap_input(p, v0, a0, j0, vN, aN, jN, dt, config.MAX_SNAP))
+            traj_components.append(fit_snap_input(p, v0, a0, j0, vN, aN, jN, dt, config.MAX_SNAP, verbose=disp))
 
         return Trajectory3D(*traj_components)
 

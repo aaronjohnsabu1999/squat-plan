@@ -66,9 +66,12 @@ if __name__ == '__main__':
 
     dt = config.MPC_TIME_HORIZON / config.MPC_NUM_TIME_STEPS
     traj = Trajectory3D(*list(Trajectory(*state[:,d], np.zeros(config.MPC_NUM_TIME_STEPS), dt) for d in range(3))) # zero-input initial trajectory
+    new_traj = traj
+    reached_traj_end = False
 
     t_start = time.time()
     t_offset = 0
+    new_t_offset = t_offset
     t = 0
 
     def run_trajopt():
@@ -77,8 +80,8 @@ if __name__ == '__main__':
 
         t_start = time.time()
 
-        t_init = min(t + config.MPC_EXPECTED_SOLVE_TIME, t_offset + config.MPC_TIME_HORIZON)
-        state_init = traj.state(t_init - t_offset)
+        t_init = t + config.MPC_EXPECTED_SOLVE_TIME
+        state_init = traj.state(min(t_init - t_offset, config.MPC_TIME_HORIZON))
 
         prob = Problem(*state_init)
         prob.add_obstacles(obstacles) # TODO: only add obstacles in sensing horizon
@@ -114,13 +117,15 @@ if __name__ == '__main__':
         t = time.time() - t_start
 
         find_new_traj = False
-        if not trajopt_thread.is_alive() and t >= new_t_offset:
+        if (not trajopt_thread.is_alive()) and t >= new_t_offset:
             traj = new_traj
             t_offset = new_t_offset
+            reached_traj_end = False
             find_new_traj = True
 
-        if t - t_offset > config.MPC_TIME_HORIZON:
+        if t - t_offset > config.MPC_TIME_HORIZON and not reached_traj_end:
             print("WARNING: MPC solve took too long, and there is no more trajectory to follow!")
+            reached_traj_end = True
 
         state = traj.state(min(t - t_offset, config.MPC_TIME_HORIZON))
 

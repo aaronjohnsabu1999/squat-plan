@@ -66,7 +66,7 @@ class Trajectory:
         return p, v, a, j
 
 
-def fit_snap_input(p, v0, a0, j0, vN, aN, jN, dt, max_snap):
+def fit_snap_input(p, v0, a0, j0, vN, aN, jN, dt, max_snap, verbose=False):
     N = p.shape[0] - 1
 
     def s_coeffs(i):
@@ -118,5 +118,5 @@ def fit_snap_input(p, v0, a0, j0, vN, aN, jN, dt, max_snap):
     constraints = [C/dt**4 @ s == d/dt**4, cp.abs(s) <= max_snap] # also constrain snap
 
     prob = cp.Problem(objective, constraints)
-    prob.solve(verbose=False)
+    prob.solve(verbose=verbose)
     return Trajectory(p[0], v0, a0, j0, s.value, dt)

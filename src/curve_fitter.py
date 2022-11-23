@@ -14,7 +14,7 @@ class Trajectory3D:
         return np.array([self.traj_x.state(t), self.traj_y.state(t), self.traj_z.state(t)]).T
 
 
-class Trajectory:
+class Trajectory1D:
     def __init__(self, p0, v0, a0, j0, s, dts):
         self.p0 = p0
         self.v0 = v0
@@ -119,4 +119,4 @@ def fit_snap_input(p, v0, a0, j0, vN, aN, jN, dt, max_snap, verbose=False):
 
     prob = cp.Problem(objective, constraints)
     prob.solve(verbose=verbose)
-    return Trajectory(p[0], v0, a0, j0, s.value, dt)
+    return Trajectory1D(p[0], v0, a0, j0, s.value, dt)

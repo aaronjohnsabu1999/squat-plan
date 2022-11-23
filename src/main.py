@@ -13,40 +13,17 @@
 # ***********************************************************/
 
 # PACKAGE IMPORTS
-from dataclasses import dataclass
 import numpy as np
 import time
 from threading import Thread
 import signal
 import os
 from trajopt_linear import Problem
-from curve_fitter import Trajectory, Trajectory3D
+from curve_fitter import Trajectory1D, Trajectory3D
+from forester import *
 import viz_vpython as viz # can import viz_rviz or viz_vpython
 
 import config
-
-# Obstacle types
-@dataclass
-class ObsEllipsoid:
-    x: float
-    y: float
-    z: float
-    rx: float
-    ry: float
-    rz: float
-    type: str = 'ellipsoid'
-
-@dataclass
-class ObsBox(ObsEllipsoid):
-    type: str = 'box'
-
-@dataclass
-class ObsCylinder:
-    axis: int
-    x_or_y: float
-    y_or_z: float
-    r: float
-    type: str = 'cylinder'
 
 # MAIN PROGRAM
 if __name__ == '__main__':
@@ -54,12 +31,15 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, lambda signum, frame : os._exit(0))
 
     # IMPORTANT OBSTACLE BUG: A sphere or cylinder directly in front of the vehicle will cause it to get stuck. It needs to be slightly offset so that the optimization is pushed in some direction.
-    obstacles = [
-        ObsEllipsoid(2.51, 2, 2.5, 0.5, 1, 0.5),
-        # ObsBox(2.51, 4.5, 2.5, 0.75, 0.75, 0.75), # Box obstacles not working yet :(
-        ObsEllipsoid(2.49, 10, 2.5, 1, 1, 1),
-        ObsCylinder(0, 7, 2.51, 1),
-    ]
+    # obstacles = [
+    #     ObsEllipsoid(2.51, 2, 2.5, 0.5, 1, 0.5),
+    #     # ObsBox(2.51, 4.5, 2.5, 0.75, 0.75, 0.75), # Box obstacles not working yet :(
+    #     ObsEllipsoid(2.49, 10, 2.5, 1, 1, 1),
+    #     ObsCylinder(0, 7, 2.51, 1),
+    # ]
+
+    # random obstacles
+    obstacles = gen_random_forest(30, config.MAP_WX, config.MAP_WY, config.MAP_WZ, [config.INIT_POS, config.GOAL_POS], config.COLLISION_RADIUS, seed=3)
 
     viz.init()
     viz.add_obstacles(obstacles)
@@ -68,7 +48,7 @@ if __name__ == '__main__':
     state = np.array([config.INIT_POS, np.zeros(3), np.zeros(3), np.zeros(3)])
 
     dt = config.MPC_TIME_HORIZON / config.MPC_NUM_TIME_STEPS
-    traj = Trajectory3D(*list(Trajectory(*state[:,d], np.zeros(config.MPC_NUM_TIME_STEPS), dt) for d in range(3))) # zero-input initial trajectory
+    traj = Trajectory3D(*list(Trajectory1D(*state[:,d], np.zeros(config.MPC_NUM_TIME_STEPS), dt) for d in range(3))) # zero-input initial trajectory
     new_traj = traj
     reached_traj_end = False
 
@@ -94,7 +74,8 @@ if __name__ == '__main__':
         state_init = traj.state(min(t_init - t_offset, config.MPC_TIME_HORIZON))
 
         prob = Problem(*state_init)
-        prob.add_obstacles(obstacles) # TODO: only add obstacles in sensing horizon
+        visible_obstacles = [obs for obs in obstacles if obstacle_intersects_sphere(obs, state[0], config.SENSING_HORIZON)]
+        prob.add_obstacles(visible_obstacles)
         prob.add_sensing_horizon_contraint(state[0])
         prob.add_final_state_objective(config.GOAL_POS)
 

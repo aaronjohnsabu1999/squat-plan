@@ -15,6 +15,7 @@
 # PACKAGE IMPORTS
 import numpy             as np
 import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 
 # FUNCTION DEFINITIONS
 def plot_sphere(ax, x, y, z, r):

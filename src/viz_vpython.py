@@ -47,9 +47,9 @@ def make_cylinder(axis, x_or_y, y_or_z, r):
 def make_box(x, y, z, rx, ry, rz):
     return box(pos=(x,y,z), length=2*rx, height=2*ry, width=2*rz) 
 
-def make_path(x, y, z):
+def make_path(x, y, z, color):
     points = np.array([x, y, z]).T
-    return curve(*list(vector(*p) for p in points), radius=0.05)
+    return curve(*list(vector(*p) for p in points), color=color, radius=0.05)
 
 def add_ellipsoid_obstacle(x, y, z, rx, ry, rz):
     obj = make_ellipsoid(x, y, z, rx, ry, rz)
@@ -76,13 +76,11 @@ def add_obstacles(obstacles):
             add_cylinder_obstacle(obs.axis, obs.x_or_y, obs.y_or_z, obs.r)
 
 def update_gekko_path(x, y, z):
-    obj = make_path(x, y, z)
-    obj.color = vector(0,1,0)
+    obj = make_path(x, y, z, color=vector(0,1,0))
     update_obj(obj, 'gekko_path')
 
 def update_smooth_path(x, y, z):
-    obj = make_path(x, y, z)
-    obj.color = vector(0,0,1)
+    obj = make_path(x, y, z, color=vector(0,0,1))
     update_obj(obj, 'smooth_path')
 
 def update_vehicle(x, y, z, collision_r, sense_r):

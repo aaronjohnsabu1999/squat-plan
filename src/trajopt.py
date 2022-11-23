@@ -40,8 +40,11 @@ def trajopt(solverParams, systemParams, boundaryCons, controlParams, obstacles):
 
   P_I = boundaryCons['P_I']
   P_F = boundaryCons['P_F']
+  V_I = boundaryCons['V_I']
   V_F = boundaryCons['V_F']
+  Q_I = boundaryCons['Q_I']
   Q_F = boundaryCons['Q_F']
+  W_I = boundaryCons['W_I']
   W_F = boundaryCons['W_F']
   F_I = [0, 0, - M * 9.81]
   
@@ -62,28 +65,24 @@ def trajopt(solverParams, systemParams, boundaryCons, controlParams, obstacles):
   q_f = [] # final angular position
   w_f = [] # final angular velocity
 
-  q_norm = m.Intermediate(0)
-
   q.append(m.Var(value=1))
   q_f.append(m.Var(value=1))
   
   for i in range(3):
     # initialize variables
-    # a.append(m.Var(value=0))
-    # a.append(m.Var(value=None, lb=-1, ub=1, fixed_initial=False))
-    v.append(m.Var(value=0))
+    v.append(m.Var(value=V_I[i]))
     p.append(m.Var(value=P_I[i], fixed_initial=True))
-    q.append(m.Var(value=0))
-    w.append(m.Var(value=0))
+    q.append(m.Var(value=Q_I[i]))
+    w.append(m.Var(value=W_I[i]))
 
     f_I.append(m.FV(value=F_I[i]))
     if i < 2:
       f_B.append(m.Var(value=0))
     else:
-      f_B.append(m.Var(value=0, fixed_initial=False))
-    m_B.append(m.Var(value=0, fixed_initial=False))
+      f_B.append(m.Var(value=0, lb = -100, ub = 100, fixed_initial=False))
+    m_B.append(m.Var(value=0, lb = -200, ub = 200, fixed_initial=False))
 
-    p_f.append(m.Var()) # should be FV instead of Var but doesn't work for some reason
+    p_f.append(m.Var())
     v_f.append(m.Var())
     q_f.append(m.Var())
     w_f.append(m.Var())
@@ -118,8 +117,10 @@ def trajopt(solverParams, systemParams, boundaryCons, controlParams, obstacles):
   for i in range(3):
     m.Connection(p[i], p_f[i], 'end', 'end')
     m.Connection(v[i], v_f[i], 'end', 'end')
-    m.Connection(q[i+1], q_f[i+1], 'end', 'end')
-    m.Connection(w[i], w_f[i], 'end', 'end')
+    if solverParams['set_QF']:
+      m.Connection(q[i+1], q_f[i+1], 'end', 'end')
+    if solverParams['set_WF']:
+      m.Connection(w[i], w_f[i], 'end', 'end')
 
   # minimize control input
   K_f = controlParams['K_f']

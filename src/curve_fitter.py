@@ -102,20 +102,20 @@ def fit_snap_input(p, v0, a0, j0, vN, aN, jN, dt, max_snap):
     s = cp.Variable(N)
 
     A = np.row_stack(list(np.array(list(p_coeffs(i) for i in range(N+1)))))
-    b = (p[1:] - A[1:,-1]) # scale because CVXPY doesn't like small numbers
-    A = A[1:, :-1]
+    b = (p - A[:,-1])
+    A = A[:, :-1]
 
     # add snap control cost
     weight = 0.00001
     A = np.row_stack((A, weight * np.identity(N)))
     b = np.concatenate((b, np.zeros(N)))
 
-    objective = cp.Minimize(cp.sum_squares(A/dt**2 @ s - b/dt**2)) # CVXPY doesn't like really small numbers. Scaling by 1/dt^2 seems to help.
+    objective = cp.Minimize(cp.sum_squares(A/dt**4 @ s - b/dt**4)) # CVXPY doesn't like really small numbers. Scaling by 1/dt^4 seems to help.
 
     C = np.row_stack([p_coeffs(N), v_coeffs(N), a_coeffs(N), j_coeffs(N)])
     d = (np.array((p[N], vN, aN, jN)) - C[:,-1])
     C = C[:, :-1]
-    constraints = [C/dt**2 @ s == d/dt**2, cp.abs(s) <= max_snap] # also constrain snap
+    constraints = [C/dt**4 @ s == d/dt**4, cp.abs(s) <= max_snap] # also constrain snap
 
     prob = cp.Problem(objective, constraints)
     prob.solve(verbose=False)

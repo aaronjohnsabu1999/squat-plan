@@ -64,13 +64,12 @@ def make_cylinder(marker, axis, x_or_y, y_or_z, r):
     axes = ['x', 'y', 'z']
     axis_str = axes[axis]
     axes.remove(axis_str)
-    axes.append(axis_str)
 
     map_width = (config.MAP_WX, config.MAP_WY, config.MAP_WZ)[axis]
 
     setattr(marker.pose.position, axes[0], x_or_y)
     setattr(marker.pose.position, axes[1], y_or_z)
-    setattr(marker.pose.position, axes[2], map_width / 2)
+    setattr(marker.pose.position, axis_str, map_width / 2)
     if axis != 2:
         rot_axis = np.zeros(3)
         rot_axis[1 - axis] = 1

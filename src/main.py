@@ -18,9 +18,10 @@ import numpy as np
 import time
 from threading import Thread
 import signal
+import os
 from trajopt_linear import Problem
 from curve_fitter import Trajectory, Trajectory3D
-import viz
+import viz_vpython as viz # can import viz_rviz or viz_vpython
 
 import config
 
@@ -131,3 +132,5 @@ if __name__ == '__main__':
 
         viz.show_once()
         time.sleep(0.01)
+
+    os._exit(0)

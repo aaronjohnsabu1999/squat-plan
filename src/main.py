@@ -50,6 +50,9 @@ class ObsCylinder:
 
 # MAIN PROGRAM
 if __name__ == '__main__':
+    # exit reliably on Ctrl+C
+    signal.signal(signal.SIGINT, lambda signum, frame : os._exit(0))
+
     # IMPORTANT OBSTACLE BUG: A sphere or cylinder directly in front of the vehicle will cause it to get stuck. It needs to be slightly offset so that the optimization is pushed in some direction.
     obstacles = [
         ObsEllipsoid(2.51, 2, 2.5, 0.5, 1, 0.5),
@@ -69,6 +72,10 @@ if __name__ == '__main__':
     new_traj = traj
     reached_traj_end = False
 
+    # for visualization
+    gekko_path = [[], [], []]
+    smooth_path = [[], [], []]
+
     t_start = time.time()
     t_offset = 0
     new_t_offset = t_offset
@@ -77,6 +84,9 @@ if __name__ == '__main__':
     def run_trajopt():
         global new_traj
         global new_t_offset
+
+        global gekko_path
+        global smooth_path 
 
         t_start = time.time()
 
@@ -92,12 +102,8 @@ if __name__ == '__main__':
             new_traj = prob.solve(disp=False)
             new_t_offset = t_init
 
-            path_x = list(new_traj.traj_x.state(t)[0] for t in prob.m.time)
-            path_y = list(new_traj.traj_y.state(t)[0] for t in prob.m.time)
-            path_z = list(new_traj.traj_z.state(t)[0] for t in prob.m.time)
-
-            viz.update_gekko_path(prob.p[0].value, prob.p[1].value, prob.p[2].value)
-            viz.update_smooth_path(path_x, path_y, path_z)
+            gekko_path = [prob.p[0].value, prob.p[1].value, prob.p[2].value]
+            smooth_path = np.array(list(new_traj.state(t)[0] for t in prob.m.time)).T
         except:
             print("Optimization failed!")
 
@@ -106,14 +112,7 @@ if __name__ == '__main__':
     trajopt_thread = Thread(target=run_trajopt)
     trajopt_thread.start()
 
-    run = True
-    def signal_handler(signal, frame):
-        global run
-        run = False
-
-    signal.signal(signal.SIGINT, signal_handler)
-
-    while run:
+    while True:
         t = time.time() - t_start
 
         find_new_traj = False
@@ -122,6 +121,9 @@ if __name__ == '__main__':
             t_offset = new_t_offset
             reached_traj_end = False
             find_new_traj = True
+
+            viz.update_gekko_path(*gekko_path)
+            viz.update_smooth_path(*smooth_path)
 
         if t - t_offset > config.MPC_TIME_HORIZON and not reached_traj_end:
             print("WARNING: MPC solve took too long, and there is no more trajectory to follow!")
@@ -137,5 +139,3 @@ if __name__ == '__main__':
 
         viz.show_once()
         time.sleep(0.01)
-
-    os._exit(0)

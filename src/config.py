@@ -11,6 +11,13 @@ DRONE_INERTIA = np.array([[0.0125, 0.0   , 0.0  ],
                           [0.0   , 0.0   , 0.025]]) # [kg m^2] Inertia matrix of drone, in body frame
 DRONE_MASS = 2.0 # [kg]
 
+# Controller parameters
+KP_ATT = np.array([5.0, 5.0, 5.0]) # x, y, z
+KD_ATT = np.array([50.0, 50.0, 50.0])
+
+KP_POS = np.array([1.0, 1.0, 1.0])
+KD_POS = np.array([1.0, 1.0, 1.0])
+
 g = 9.80665 # m/s^2
 
 DYNAMICS_DT = 0.01 # [s] Time step for dynamics simulation

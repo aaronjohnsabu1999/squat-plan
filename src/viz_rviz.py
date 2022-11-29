@@ -1,21 +1,27 @@
 import rospy
 from visualization_msgs.msg import Marker
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point, PoseStamped
 import numpy as np
 
 import config
 
 markers = {'static': []}
+poses = {}
+pose_pubs = {}
 
 def init():
     global marker_pub
     rospy.init_node('squat', anonymous=True)
-    marker_pub = rospy.Publisher("/squat/marker", Marker, queue_size=100)
+    marker_pub = rospy.Publisher("/squat/marker", Marker, queue_size=10)
 
 def show_once():
     for ns in markers:
         for marker in markers[ns]:
             marker_pub.publish(marker)
+    for name in poses:
+        if not name in pose_pubs:
+            pose_pubs[name] = rospy.Publisher("/squat/pose/" + name, PoseStamped, queue_size=10)
+        pose_pubs[name].publish(poses[name])
 
 def show():
     while not rospy.is_shutdown():
@@ -101,6 +107,20 @@ def make_path(marker, x, y, z):
         p.z = z[i]
         marker.points.append(p)
 
+def make_pose(p, q):
+    pose = PoseStamped()
+    pose.header.stamp = rospy.Time.now()
+    pose.header.frame_id = "map"
+
+    pose.pose.position.x = p[0]
+    pose.pose.position.y = p[1]
+    pose.pose.position.z = p[2]
+    pose.pose.orientation.w = q[0]
+    pose.pose.orientation.x = q[1]
+    pose.pose.orientation.y = q[2]
+    pose.pose.orientation.z = q[3]
+    return pose
+
 def add_ellipsoid_obstacle(x, y, z, rx, ry, rz):
     marker = new_marker('static', len(markers['static']))
     make_ellipsoid(marker, x, y, z, rx, ry, rz)
@@ -140,12 +160,16 @@ def update_smooth_path(x, y, z):
     marker.color.b = 1.0
     markers['smooth_path'] = [marker]
 
-def update_vehicle(x, y, z, collision_r, sense_r, plan_r):
+def update_vehicle(p, q, collision_r, sense_r, plan_r):
+    x, y, z = p
+
     marker = new_marker('vehicle')
     make_ellipsoid(marker, x, y, z, collision_r, collision_r, collision_r)
     marker.color.r = 1.0
     marker.color.b = 1.0
     markers['vehicle'] = [marker]
+
+    poses['vehicle_pose'] = make_pose(p, q)
 
     marker = new_marker('sensing_horizon')
     make_ellipsoid(marker, x, y, z, sense_r, sense_r, sense_r)

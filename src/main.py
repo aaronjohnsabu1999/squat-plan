@@ -21,6 +21,7 @@ import os
 from trajopt_linear import Problem
 from curve_fitter import Trajectory1D, Trajectory3D
 from forester import *
+from dynamics import Controller
 import viz_vpython as viz # can import viz_rviz or viz_vpython
 
 import config
@@ -45,10 +46,12 @@ if __name__ == '__main__':
     viz.add_obstacles(obstacles)
     viz.update_goal(config.GOAL_POS[0], config.GOAL_POS[1], config.GOAL_POS[2])
 
-    state = np.array([config.INIT_POS, np.zeros(3), np.zeros(3), np.zeros(3)])
+    ref_state = np.array([config.INIT_POS, np.zeros(3), np.zeros(3), np.zeros(3)])
+
+    ctrl = Controller(config.INIT_POS)
 
     dt = config.MPC_TIME_HORIZON / config.MPC_NUM_TIME_STEPS
-    traj = Trajectory3D(*list(Trajectory1D(*state[:,d], np.zeros(config.MPC_NUM_TIME_STEPS), dt) for d in range(3))) # zero-input initial trajectory
+    traj = Trajectory3D(*list(Trajectory1D(*ref_state[:,d], np.zeros(config.MPC_NUM_TIME_STEPS), dt) for d in range(3))) # zero-input initial trajectory
     new_traj = traj
     reached_traj_end = False
 
@@ -56,10 +59,12 @@ if __name__ == '__main__':
     gekko_path = [[], [], []]
     smooth_path = [[], [], []]
 
-    t_start = time.time()
+    t = 0
     t_offset = 0
     new_t_offset = t_offset
-    t = 0
+
+    t_start = time.time()
+    target_time = t_start
 
     def run_trajopt():
         global new_traj
@@ -74,9 +79,9 @@ if __name__ == '__main__':
         state_init = traj.state(min(t_init - t_offset, config.MPC_TIME_HORIZON))
 
         prob = Problem(*state_init)
-        visible_obstacles = [obs for obs in obstacles if obstacle_intersects_sphere(obs, state[0], config.SENSING_HORIZON)]
+        visible_obstacles = [obs for obs in obstacles if obstacle_intersects_sphere(obs, ref_state[0], config.SENSING_HORIZON)]
         prob.add_obstacles(visible_obstacles)
-        prob.add_sensing_horizon_contraint(state[0])
+        prob.add_sensing_horizon_contraint(ref_state[0])
         prob.add_final_state_objective(config.GOAL_POS)
 
         try:
@@ -94,8 +99,6 @@ if __name__ == '__main__':
     trajopt_thread.start()
 
     while True:
-        t = time.time() - t_start
-
         find_new_traj = False
         if (not trajopt_thread.is_alive()) and t >= new_t_offset:
             traj = new_traj
@@ -110,13 +113,25 @@ if __name__ == '__main__':
             print("WARNING: MPC solve took too long, and there is no more trajectory to follow!")
             reached_traj_end = True
 
-        state = traj.state(min(t - t_offset, config.MPC_TIME_HORIZON))
-
-        viz.update_vehicle(*state[0], config.COLLISION_RADIUS, config.SENSING_HORIZON, config.SENSING_HORIZON_CONSERVATIVE)
+        traj_t = min(t - t_offset, config.MPC_TIME_HORIZON)
+        ref_state = traj.state(traj_t)
 
         if find_new_traj:
             trajopt_thread = Thread(target=run_trajopt)
             trajopt_thread.start()
 
+        ctrl.step(*ref_state, traj.input(traj_t))
+
+        viz.update_vehicle(ctrl.plant.p, ctrl.plant.q, config.COLLISION_RADIUS, config.SENSING_HORIZON, config.SENSING_HORIZON_CONSERVATIVE)
         viz.show_once()
-        time.sleep(0.01)
+
+        t += config.DYNAMICS_DT
+
+        # Best effort to keep up with desired simulation rate. If simulation is too slow, it will just run in slow motion.
+        target_time += config.DYNAMICS_DT
+        delay = target_time - time.time()
+        if (delay < 0):
+            print("WARNING: Can't simulate dynamics fast enough!")
+            target_time = time.time()
+        else:
+            time.sleep(delay)

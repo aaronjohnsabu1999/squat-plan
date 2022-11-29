@@ -65,6 +65,9 @@ J_inv = np.linalg.inv(J)
 Kp_att = config.KP_ATT
 Kd_att = config.KD_ATT
 
+Kp_pos = config.KP_POS
+Kd_pos = config.KD_POS
+
 dt = config.DYNAMICS_DT
 
 # dynamics
@@ -131,13 +134,13 @@ class Controller:
         return omega_ref, omega_dot_ref
 
     def step(self, p_ref, v_ref, a_ref, j_ref, s_ref):
-        # TODO position controller
-
-        # step 1: compute specific thrust
-        tau_vec = a_ref - g_vec
+        # step 1: compute specific thrust using feedforward (a_ref) and PD control (Lecture 16)
+        r_e = self.plant.p - p_ref
+        r_e_dot = self.plant.v - v_ref
+        tau_vec = a_ref - g_vec - Kp_pos * r_e - Kd_pos * r_e_dot
         tau = np.linalg.norm(tau_vec)
 
-        # step 2: compute reference angular velocity and angular acceleration
+        # step 2: compute reference angular velocity and angular acceleration, utilizing differential flatness
         omega_ref, omega_dot_ref = self.get_omega_ref(j_ref, s_ref, tau)
 
         # step 3: compute desired attitude (from Lecture 16)
@@ -150,7 +153,7 @@ class Controller:
         omega_e = self.plant.omega - q_e.conj().rotate_vec(omega_ref)
 
         # step 5: compute omega_dot using feedforward (omega_dot_ref) and PD control (Lecture 15)
-        omega_dot = omega_dot_ref - Kp_att * sgn(q_e[0]) * q_e.vec() - Kd_att * omega_e # omega_dot_ref - 
+        omega_dot = omega_dot_ref - Kp_att * sgn(q_e[0]) * q_e.vec() - Kd_att * omega_e
 
         # step 6: compute M_B and F_z from omega_dot and tau
         M_B = J @ omega_dot # ignore the np.cross(-omega, J@omega) term for simplicity

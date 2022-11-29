@@ -54,6 +54,7 @@ if __name__ == '__main__':
     traj = Trajectory3D(*list(Trajectory1D(*ref_state[:,d], np.zeros(config.MPC_NUM_TIME_STEPS), dt) for d in range(3))) # zero-input initial trajectory
     new_traj = traj
     reached_traj_end = False
+    reached_new_traj_start = False
 
     # for visualization
     gekko_path = [[], [], []]
@@ -71,9 +72,9 @@ if __name__ == '__main__':
         global new_t_offset
 
         global gekko_path
-        global smooth_path 
+        global smooth_path
 
-        t_start = time.time()
+        t_opt_start = time.time()
 
         t_init = t + config.MPC_EXPECTED_SOLVE_TIME
         state_init = traj.state(min(t_init - t_offset, config.MPC_TIME_HORIZON))
@@ -93,21 +94,26 @@ if __name__ == '__main__':
         except:
             print("Optimization failed!")
 
-        print("Total solve time: ", time.time() - t_start)
+        print("Total solve time: ", time.time() - t_opt_start)
 
     trajopt_thread = Thread(target=run_trajopt)
     trajopt_thread.start()
 
     while True:
         find_new_traj = False
-        if (not trajopt_thread.is_alive()) and t >= new_t_offset:
-            traj = new_traj
-            t_offset = new_t_offset
-            reached_traj_end = False
-            find_new_traj = True
+        if new_t_offset > t_offset and t >= new_t_offset:
+            if (not trajopt_thread.is_alive()):
+                traj = new_traj
+                t_offset = new_t_offset
+                reached_traj_end = False
+                reached_new_traj_start = False
+                find_new_traj = True
 
-            viz.update_gekko_path(*gekko_path)
-            viz.update_smooth_path(*smooth_path)
+                viz.update_gekko_path(*gekko_path)
+                viz.update_smooth_path(*smooth_path)
+            elif not reached_new_traj_start:
+                reached_new_traj_start = True
+                print("WARNING: MPC solve took longer than expected. Trajectory will not be continuous!")
 
         if t - t_offset > config.MPC_TIME_HORIZON and not reached_traj_end:
             print("WARNING: MPC solve took too long, and there is no more trajectory to follow!")
@@ -128,10 +134,10 @@ if __name__ == '__main__':
         t += config.DYNAMICS_DT
 
         # Best effort to keep up with desired simulation rate. If simulation is too slow, it will just run in slow motion.
-        target_time += config.DYNAMICS_DT
+        target_time += config.DYNAMICS_DT / config.SIM_SPEED_FACTOR
         delay = target_time - time.time()
         if (delay < 0):
-            print("WARNING: Can't simulate dynamics fast enough!")
+            print("WARNING: Can't simulate dynamics fast enough! (behind by {} seconds)".format(-delay))
             target_time = time.time()
         else:
             time.sleep(delay)

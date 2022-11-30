@@ -151,6 +151,10 @@ class Controller:
         r_e_dot = self.plant.v - v_ref
         tau_vec = a_ref - g_vec - Kp_pos * r_e - Kd_pos * r_e_dot
         tau = np.linalg.norm(tau_vec)
+        tau_vec_hat = tau_vec / tau
+
+        # limit thrust
+        tau = np.clip(tau, config.MIN_THRUST / m, config.MAX_THRUST / m)
 
         if config.MPC_USE_LINEAR_MODEL:
             # step 2: compute reference angular velocity and angular acceleration, utilizing differential flatness
@@ -158,7 +162,7 @@ class Controller:
 
         # step 3: compute desired attitude (from Lecture 16)
         T_hat = i_z
-        v_hat = tau_vec / tau
+        v_hat = tau_vec_hat
         q_d = 1 / np.sqrt(2*(1 + T_hat@v_hat)) * Quat.pair(1 + T_hat@v_hat, np.cross(T_hat, v_hat))
 
         # step 4: compute attitude and angular velocity error (from Lecture 15)
@@ -171,7 +175,9 @@ class Controller:
         # step 6: compute M_B and T from omega_dot and tau
         M_B = J @ omega_dot # ignore the np.cross(-omega, J@omega) term for simplicity
         T = m * tau
-        # TODO check limits?
+
+        # limit torque
+        M_B = M_B.clip(-config.MAX_TORQUE, config.MAX_TORQUE)
 
         self.plant.step(M_B, T)
 

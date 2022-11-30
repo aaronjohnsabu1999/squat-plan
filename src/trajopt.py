@@ -87,7 +87,7 @@ class Problem:
             w = [] # angular velocity
 
             m_B = [] # body moments
-            f_B = self.m.Var(value=0, lb=0, ub=config.MAX_THRUST, fixed_initial=False) # body forces
+            f_B = self.m.Var(value=0, lb=config.MIN_THRUST, ub=config.MAX_THRUST, fixed_initial=False) # body forces
 
             q.append(self.m.Var(value=q_init[0]))
 
@@ -163,6 +163,7 @@ class Problem:
         # self.p_cur = p_cur
 
     def add_final_state_objective(self, p_d):
+        # Experimental: Force exploration by constraining the ending position to be on the sensing horizon.
         # if np.linalg.norm(p_d - self.p_cur) > config.SENSING_HORIZON_CONSERVATIVE:
         #     self.m.Equation(((self.p[0]-self.p_cur[0])**2 + (self.p[1]-self.p_cur[1])**2 + (self.p[2]-self.p_cur[2])**2) * self.final == (config.SENSING_HORIZON_CONSERVATIVE**2) * self.final)
 

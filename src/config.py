@@ -27,9 +27,13 @@ COLLISION_RADIUS = 0.5 # [m] Artificially increase all obtacles by this size
 SENSING_HORIZON = 5.0 # [m]
 SENSING_HORIZON_CONSERVATIVE = SENSING_HORIZON - COLLISION_RADIUS
 
-MAX_SNAP = 200.0 # [m/s^4] Max snap, component-wise for X, Y, Z. TODO choose
-MAX_THRUST = 100.0 # [N] Max thrust TODO choose
-MAX_TORQUE = 200.0 # [N m] Max torque, component-wise for X, Y, Z
+MAX_SNAP = 300.0 # [m/s^4] Max snap, component-wise for X, Y, Z (this limit is not reached in current simulation)
+
+max_thrust_factor = 1.5 # max thrust in number of g's
+thrust_allocated_for_torque = 0.2 # number of g's of thrust to sacrifice and instead use for torque
+MIN_THRUST = thrust_allocated_for_torque * DRONE_MASS * g # [N] Min allowed thrust
+MAX_THRUST = (max_thrust_factor - thrust_allocated_for_torque) * DRONE_MASS * g # [N] Max allowed thrust
+MAX_TORQUE = (DRONE_MASS * g / 4) * 2*thrust_allocated_for_torque * 0.195 # [N m] Max torque, component-wise for X, Y, Z. Here, 0.195 m is the arm length.
 
 INIT_POS = np.array([MAP_WX/2, 0     , MAP_WZ/2])
 GOAL_POS = np.array([MAP_WX/2, MAP_WY, MAP_WZ/2])

@@ -67,6 +67,7 @@ if __name__ == '__main__':
     smooth_path = [[], [], []]
 
     # for plotting
+    p_ref_data = []
     p_data = []
     v_data = []
     q_data = []
@@ -154,6 +155,7 @@ if __name__ == '__main__':
 
         M_B, T = ctrl.step(*ref_state, traj.input(traj_t))
 
+        p_ref_data.append(ref_state[0])
         p_data.append(ctrl.plant.p.copy())
         v_data.append(ctrl.plant.v.copy())
         q_data.append(ctrl.plant.q.copy())
@@ -164,8 +166,11 @@ if __name__ == '__main__':
         viz.update_vehicle(ctrl.plant.p, ctrl.plant.q, config.COLLISION_RADIUS, config.SENSING_HORIZON, config.SENSING_HORIZON_CONSERVATIVE)
         viz.show_once()
 
-        if np.linalg.norm(ctrl.plant.p - config.GOAL_POS) < 0.01:
-            print("Goal reached!")
+        # if np.linalg.norm(ctrl.plant.p - config.GOAL_POS) < 0.1:
+        #     print("Goal reached!")
+        #     break
+
+        if t >= 20 - config.DYNAMICS_DT/2:
             break
 
         t += config.DYNAMICS_DT
@@ -189,32 +194,50 @@ if __name__ == '__main__':
     M_B_data = np.array(M_B_data).T
 
     fig, axs = plt.subplots(6, sharex=True)
+    fig.tight_layout()
     legend_loc = 'upper right'
 
     axs[0].plot(t_data, p_data[0], label="$p_x$")
     axs[0].plot(t_data, p_data[1], label="$p_y$")
     axs[0].plot(t_data, p_data[2], label="$p_z$")
+    axs[0].set(ylabel="Position [m]")
     axs[0].legend(loc=legend_loc)
 
     axs[1].plot(t_data, v_data[0], label="$v_x$")
     axs[1].plot(t_data, v_data[1], label="$v_y$")
     axs[1].plot(t_data, v_data[2], label="$v_z$")
+    axs[1].set(ylabel="Velocity [m/s]")
     axs[1].legend(loc=legend_loc)
 
     axs[2].plot(t_data, q_data, label="$||\\vec{{q}}||$")
+    axs[2].set(ylabel="$||\\vec{{q}}||$")
     axs[2].legend(loc=legend_loc)
 
     axs[3].plot(t_data, omega_data[0], label="$\\omega_x$")
     axs[3].plot(t_data, omega_data[1], label="$\\omega_y$")
     axs[3].plot(t_data, omega_data[2], label="$\\omega_z$")
+    axs[3].set(ylabel="Angular vel [rad/s]")
     axs[3].legend(loc=legend_loc)
 
     axs[4].plot(t_data, M_B_data[0], label="$M_{B,x}$")
     axs[4].plot(t_data, M_B_data[1], label="$M_{B,y}$")
     axs[4].plot(t_data, M_B_data[2], label="$M_{B,z}$")
+    axs[4].set(ylabel="Torque inp [N m]")
+    axs[4].axhline(y=-config.MAX_TORQUE, color='black', linestyle='--')
+    axs[4].axhline(y=config.MAX_TORQUE, color='black', linestyle='--')
     axs[4].legend(loc=legend_loc)
 
     axs[5].plot(t_data, T_data, label="$T$")
+    axs[5].set(xlabel="Time [s]", ylabel="Thrust inp [N]")
+    axs[5].axhline(y=config.MIN_THRUST, color='black', linestyle='--')
+    axs[5].axhline(y=config.MAX_THRUST, color='black', linestyle='--')
     axs[5].legend(loc=legend_loc)
+
+    plt.figure()
+    r_e = list(np.linalg.norm(p_data[:,i] - p_ref_data[i]) for i in range(len(p_ref_data)))
+    plt.plot(t_data, r_e, label="$||\\vec{{r}}_e||$")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Position error [m]")
+    axs[4].legend(loc=legend_loc)
 
     plt.show()

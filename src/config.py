@@ -27,11 +27,15 @@ COLLISION_RADIUS = 0.5 # [m] Artificially increase all obtacles by this size
 SENSING_HORIZON = 5.0 # [m]
 SENSING_HORIZON_CONSERVATIVE = SENSING_HORIZON - COLLISION_RADIUS
 
-MAX_SNAP = 200.0 # [m/s^4] Max snap, component-wise for X, Y, Z. TODO: Can estimate from max angular acceleration of quadcopter.
+MAX_SNAP = 200.0 # [m/s^4] Max snap, component-wise for X, Y, Z. TODO choose
+MAX_THRUST = 100.0 # [N] Max thrust TODO choose
+MAX_TORQUE = 200.0 # [N m] Max torque, component-wise for X, Y, Z
 
 INIT_POS = np.array([MAP_WX/2, 0     , MAP_WZ/2])
 GOAL_POS = np.array([MAP_WX/2, MAP_WY, MAP_WZ/2])
 
+MPC_USE_LINEAR_MODEL = False
+
 MPC_TIME_HORIZON = 3.0 # [s]
 MPC_NUM_TIME_STEPS = 15
-MPC_MAX_SOLVE_TIME = 0.5 # [s] Max time allowed for MPC solve, which determines the initial state to begin from.
+MPC_MAX_SOLVE_TIME = 0.5 if MPC_USE_LINEAR_MODEL else 0.5 # [s] Max time allowed for MPC solve, which determines the initial state to begin from.

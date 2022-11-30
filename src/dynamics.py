@@ -71,9 +71,9 @@ Kd_pos = config.KD_POS
 dt = config.DYNAMICS_DT
 
 # dynamics
-def f(p, v, q, omega, M_B, F_z):
+def f(p, v, q, omega, M_B, T):
     p_dot = v
-    v_dot = q.rotate_vec(F_z * i_z) / m + g_vec
+    v_dot = q.rotate_vec(T * i_z) / m + g_vec
     q_dot = 1/2 * q * Quat.pure(omega)
     omega_dot = J_inv @ (np.cross(-omega, J@omega) + M_B)
     return p_dot, v_dot, q_dot, omega_dot
@@ -86,8 +86,8 @@ class Plant:
         self.q = q0
         self.omega = omega0
 
-    def step(self, M_B, F_z):
-        p_dot, v_dot, q_dot, omega_dot = f(self.p, self.v, self.q, self.omega, M_B, F_z)
+    def step(self, M_B, T):
+        p_dot, v_dot, q_dot, omega_dot = f(self.p, self.v, self.q, self.omega, M_B, T)
         self.p += p_dot * dt + (1/2) * v_dot * dt**2 # add v_dot term for slightly better integration
         self.v += v_dot * dt
         self.q += dt * q_dot
@@ -133,15 +133,28 @@ class Controller:
 
         return omega_ref, omega_dot_ref
 
-    def step(self, p_ref, v_ref, a_ref, j_ref, s_ref):
+    def step(self, p_ref, v_ref, a_or_q_ref, j_or_w_ref, input_ref):
+        if config.MPC_USE_LINEAR_MODEL:
+            a_ref = a_or_q_ref
+            j_ref = j_or_w_ref
+            s_ref = input_ref
+        else:
+            q_ref = Quat.new(a_or_q_ref)
+            omega_ref = j_or_w_ref
+            M_B_ref, T_ref = input_ref
+            omega_dot_ref = J_inv @ M_B_ref
+
         # step 1: compute specific thrust using feedforward (a_ref) and PD control (Lecture 16)
+        if not config.MPC_USE_LINEAR_MODEL:
+            a_ref = q_ref.rotate_vec(T_ref * i_z) / m + g_vec
         r_e = self.plant.p - p_ref
         r_e_dot = self.plant.v - v_ref
         tau_vec = a_ref - g_vec - Kp_pos * r_e - Kd_pos * r_e_dot
         tau = np.linalg.norm(tau_vec)
 
-        # step 2: compute reference angular velocity and angular acceleration, utilizing differential flatness
-        omega_ref, omega_dot_ref = self.get_omega_ref(j_ref, s_ref, tau)
+        if config.MPC_USE_LINEAR_MODEL:
+            # step 2: compute reference angular velocity and angular acceleration, utilizing differential flatness
+            omega_ref, omega_dot_ref = self.get_omega_ref(j_ref, s_ref, tau)
 
         # step 3: compute desired attitude (from Lecture 16)
         T_hat = i_z
@@ -155,8 +168,10 @@ class Controller:
         # step 5: compute omega_dot using feedforward (omega_dot_ref) and PD control (Lecture 15)
         omega_dot = omega_dot_ref - Kp_att * sgn(q_e[0]) * q_e.vec() - Kd_att * omega_e
 
-        # step 6: compute M_B and F_z from omega_dot and tau
+        # step 6: compute M_B and T from omega_dot and tau
         M_B = J @ omega_dot # ignore the np.cross(-omega, J@omega) term for simplicity
-        F_z = m * tau
+        T = m * tau
 
-        self.plant.step(M_B, F_z)
+        self.plant.step(M_B, T)
+
+        return M_B, T

@@ -14,12 +14,13 @@
 
 # PACKAGE IMPORTS
 import numpy as np
+import matplotlib.pyplot as plt
 import time
 from threading import Thread
 import signal
 import os
-from trajopt_linear import Problem
-from curve_fitter import Trajectory1D, Trajectory3D
+from trajopt import Problem
+from curve_fitter import Trajectory1D, Trajectory3D, TrajectoryQuadrotor
 from forester import *
 from dynamics import Controller
 import viz_vpython as viz # can import viz_rviz or viz_vpython
@@ -46,19 +47,32 @@ if __name__ == '__main__':
     viz.add_obstacles(obstacles)
     viz.update_goal(config.GOAL_POS[0], config.GOAL_POS[1], config.GOAL_POS[2])
 
-    ref_state = np.array([config.INIT_POS, np.zeros(3), np.zeros(3), np.zeros(3)])
-
     ctrl = Controller(config.INIT_POS)
 
-    dt = config.MPC_TIME_HORIZON / config.MPC_NUM_TIME_STEPS
-    traj = Trajectory3D(*list(Trajectory1D(*ref_state[:,d], np.zeros(config.MPC_NUM_TIME_STEPS), dt) for d in range(3))) # zero-input initial trajectory
+    mpc_dt = config.MPC_TIME_HORIZON / config.MPC_NUM_TIME_STEPS
+    if config.MPC_USE_LINEAR_MODEL:
+        ref_state = np.array([config.INIT_POS, np.zeros(3), np.zeros(3), np.zeros(3)])
+        traj = Trajectory3D(*list(Trajectory1D(*ref_state[:,d], np.zeros(config.MPC_NUM_TIME_STEPS), mpc_dt) for d in range(3))) # zero-input initial trajectory
+    else:
+        ref_state = [config.INIT_POS, np.zeros(3), np.array([1.0, 0.0, 0.0, 0.0]), np.zeros(3)]
+        traj = TrajectoryQuadrotor(*list([rs]*(config.MPC_NUM_TIME_STEPS+1) for rs in ref_state), [np.zeros(3)]*config.MPC_NUM_TIME_STEPS, [config.DRONE_MASS*config.g]*config.MPC_NUM_TIME_STEPS, mpc_dt)
+
     new_traj = traj
     reached_traj_end = False
     reached_new_traj_start = False
+    optimization_failed = False
 
     # for visualization
     gekko_path = [[], [], []]
     smooth_path = [[], [], []]
+
+    # for plotting
+    p_data = []
+    v_data = []
+    q_data = []
+    omega_data = []
+    M_B_data = []
+    T_data = []
 
     t = 0
     t_offset = 0
@@ -70,6 +84,7 @@ if __name__ == '__main__':
     def run_trajopt():
         global new_traj
         global new_t_offset
+        global optimization_failed
 
         global gekko_path
         global smooth_path
@@ -97,6 +112,7 @@ if __name__ == '__main__':
             gekko_path = [prob.p[0].value, prob.p[1].value, prob.p[2].value]
             smooth_path = np.array(list(new_traj.state(t)[0] for t in prob.m.time)).T
         except:
+            optimization_failed = True
             print("Optimization failed or timed out!")
 
         print("Real solve time: {}, Sim solve time: {}".format(time.time() - t_opt_start, t - (t_init - config.MPC_MAX_SOLVE_TIME)))
@@ -106,12 +122,17 @@ if __name__ == '__main__':
 
     while True:
         find_new_traj = False
-        if new_t_offset > t_offset and t >= new_t_offset:
+
+        if not trajopt_thread.is_alive() and optimization_failed:
+            optimization_failed = False
+            find_new_traj = True
+        elif new_t_offset > t_offset and t >= new_t_offset: # if a new trajectory is available and we've reached the start of it
             if (not trajopt_thread.is_alive()):
                 traj = new_traj
                 t_offset = new_t_offset
                 reached_traj_end = False
                 reached_new_traj_start = False
+                optimization_failed = False
                 find_new_traj = True
 
                 viz.update_gekko_path(*gekko_path)
@@ -131,10 +152,21 @@ if __name__ == '__main__':
             trajopt_thread = Thread(target=run_trajopt)
             trajopt_thread.start()
 
-        ctrl.step(*ref_state, traj.input(traj_t))
+        M_B, T = ctrl.step(*ref_state, traj.input(traj_t))
+
+        p_data.append(ctrl.plant.p.copy())
+        v_data.append(ctrl.plant.v.copy())
+        q_data.append(ctrl.plant.q.copy())
+        omega_data.append(ctrl.plant.omega.copy())
+        M_B_data.append(M_B)
+        T_data.append(T)
 
         viz.update_vehicle(ctrl.plant.p, ctrl.plant.q, config.COLLISION_RADIUS, config.SENSING_HORIZON, config.SENSING_HORIZON_CONSERVATIVE)
         viz.show_once()
+
+        if np.linalg.norm(ctrl.plant.p - config.GOAL_POS) < 0.01:
+            print("Goal reached!")
+            break
 
         t += config.DYNAMICS_DT
 
@@ -146,3 +178,43 @@ if __name__ == '__main__':
             target_time = time.time()
         else:
             time.sleep(delay)
+
+    # Plot
+    t_data = np.arange(0, len(p_data)) * config.DYNAMICS_DT
+
+    p_data = np.array(p_data).T
+    v_data = np.array(v_data).T
+    q_data = list(np.linalg.norm(q.vec()) for q in q_data)
+    omega_data = np.array(omega_data).T
+    M_B_data = np.array(M_B_data).T
+
+    fig, axs = plt.subplots(6, sharex=True)
+    legend_loc = 'upper right'
+
+    axs[0].plot(t_data, p_data[0], label="$p_x$")
+    axs[0].plot(t_data, p_data[1], label="$p_y$")
+    axs[0].plot(t_data, p_data[2], label="$p_z$")
+    axs[0].legend(loc=legend_loc)
+
+    axs[1].plot(t_data, v_data[0], label="$v_x$")
+    axs[1].plot(t_data, v_data[1], label="$v_y$")
+    axs[1].plot(t_data, v_data[2], label="$v_z$")
+    axs[1].legend(loc=legend_loc)
+
+    axs[2].plot(t_data, q_data, label="$||\\vec{{q}}||$")
+    axs[2].legend(loc=legend_loc)
+
+    axs[3].plot(t_data, omega_data[0], label="$\\omega_x$")
+    axs[3].plot(t_data, omega_data[1], label="$\\omega_y$")
+    axs[3].plot(t_data, omega_data[2], label="$\\omega_z$")
+    axs[3].legend(loc=legend_loc)
+
+    axs[4].plot(t_data, M_B_data[0], label="$M_{B,x}$")
+    axs[4].plot(t_data, M_B_data[1], label="$M_{B,y}$")
+    axs[4].plot(t_data, M_B_data[2], label="$M_{B,z}$")
+    axs[4].legend(loc=legend_loc)
+
+    axs[5].plot(t_data, T_data, label="$T$")
+    axs[5].legend(loc=legend_loc)
+
+    plt.show()

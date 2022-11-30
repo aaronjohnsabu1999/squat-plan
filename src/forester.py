@@ -1,7 +1,6 @@
 import random
 import numpy as np
 from dataclasses import dataclass
-from trajopt import Obstacle
 
 # Obstacle types
 @dataclass

@@ -76,10 +76,15 @@ if __name__ == '__main__':
 
         t_opt_start = time.time()
 
-        t_init = t + config.MPC_EXPECTED_SOLVE_TIME
-        state_init = traj.state(min(t_init - t_offset, config.MPC_TIME_HORIZON))
+        t_init = t + config.MPC_MAX_SOLVE_TIME
+        traj_t_init = t_init - t_offset
+        init_from_stop = False
+        if traj_t_init >= config.MPC_TIME_HORIZON:
+            traj_t_init = config.MPC_TIME_HORIZON
+            init_from_stop = True
+        state_init = traj.state(traj_t_init)
 
-        prob = Problem(*state_init)
+        prob = Problem(*state_init, time_limit=(not init_from_stop))
         visible_obstacles = [obs for obs in obstacles if obstacle_intersects_sphere(obs, ref_state[0], config.SENSING_HORIZON)]
         prob.add_obstacles(visible_obstacles)
         prob.add_sensing_horizon_contraint(ref_state[0])
@@ -92,9 +97,9 @@ if __name__ == '__main__':
             gekko_path = [prob.p[0].value, prob.p[1].value, prob.p[2].value]
             smooth_path = np.array(list(new_traj.state(t)[0] for t in prob.m.time)).T
         except:
-            print("Optimization failed!")
+            print("Optimization failed or timed out!")
 
-        print("Total solve time: ", time.time() - t_opt_start)
+        print("Real solve time: {}, Sim solve time: {}".format(time.time() - t_opt_start, t - (t_init - config.MPC_MAX_SOLVE_TIME)))
 
     trajopt_thread = Thread(target=run_trajopt)
     trajopt_thread.start()
@@ -113,10 +118,10 @@ if __name__ == '__main__':
                 viz.update_smooth_path(*smooth_path)
             elif not reached_new_traj_start:
                 reached_new_traj_start = True
-                print("WARNING: MPC solve took longer than expected. Trajectory will not be continuous!")
+                print("WARNING: MPC solve took too long. Trajectory will not be continuous! (This should almost never happen)")
 
         if t - t_offset > config.MPC_TIME_HORIZON and not reached_traj_end:
-            print("WARNING: MPC solve took too long, and there is no more trajectory to follow!")
+            print("INFO: MPC solve took too long or failed, and the end of the trajectory has been reached.")
             reached_traj_end = True
 
         traj_t = min(t - t_offset, config.MPC_TIME_HORIZON)

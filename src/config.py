@@ -34,4 +34,4 @@ GOAL_POS = np.array([MAP_WX/2, MAP_WY, MAP_WZ/2])
 
 MPC_TIME_HORIZON = 3.0 # [s]
 MPC_NUM_TIME_STEPS = 15
-MPC_EXPECTED_SOLVE_TIME = 0.5 # [s] Expected computation time for MPC solve, which determines the initial state to begin from.
+MPC_MAX_SOLVE_TIME = 0.5 # [s] Max time allowed for MPC solve, which determines the initial state to begin from.

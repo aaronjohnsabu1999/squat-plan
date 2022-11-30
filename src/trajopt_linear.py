@@ -6,7 +6,7 @@ import os
 import config
 
 class Problem:
-    def __init__(self, p_init, v_init, a_init, j_init):
+    def __init__(self, p_init, v_init, a_init, j_init, time_limit=True):
         self.p_init = p_init
 
         solver = 1 # 1 is APOPT, 3 is IPOPT
@@ -14,7 +14,8 @@ class Problem:
         self.m.options.IMODE = 6 # dynamic control, "simultaneous" approach (see https://gekko.readthedocs.io/en/latest/imode.html and https://people.eecs.berkeley.edu/~pabbeel/cs287-fa09/readings/DiehlFerreauHaverbeke_mpc-overview.pdf)
         self.m.options.SOLVER = solver
         self.m.options.MAX_ITER = 1000
-        self.m.options.MAX_TIME = 2 * config.MPC_EXPECTED_SOLVE_TIME
+        if time_limit:
+            self.m.options.MAX_TIME = config.MPC_MAX_SOLVE_TIME
 
         # Choose max and abs functions (can be max2/abs2 or max3/abs3)
         # Only APOPT can use max3/abs3 because they require mixed integer programming, but max2/abs2 seem to yield more optimal solutions anyway.

@@ -20,7 +20,7 @@ from threading import Thread
 import signal
 import os
 from trajopt import Problem
-from curve_fitter import Trajectory1D, Trajectory3D, TrajectoryQuadrotor
+from traj_eval import TrajectoryPolynomial, TrajectoryQuadrotor
 from forester import *
 from dynamics import Controller
 import viz_vpython as viz # can import viz_rviz or viz_vpython
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     mpc_dt = config.MPC_TIME_HORIZON / config.MPC_NUM_TIME_STEPS
     if config.MPC_USE_LINEAR_MODEL:
         ref_state = np.array([config.INIT_POS, np.zeros(3), np.zeros(3), np.zeros(3)])
-        traj = Trajectory3D(*list(Trajectory1D(*ref_state[:,d], np.zeros(config.MPC_NUM_TIME_STEPS), mpc_dt) for d in range(3))) # zero-input initial trajectory
+        traj = TrajectoryPolynomial(*list([rs]*(config.MPC_NUM_TIME_STEPS+1) for rs in ref_state), [np.zeros(3)]*config.MPC_NUM_TIME_STEPS, mpc_dt) # zero-input initial trajectory
     else:
         ref_state = [config.INIT_POS, np.zeros(3), np.array([1.0, 0.0, 0.0, 0.0]), np.zeros(3)]
         traj = TrajectoryQuadrotor(*list([rs]*(config.MPC_NUM_TIME_STEPS+1) for rs in ref_state), [np.zeros(3)]*config.MPC_NUM_TIME_STEPS, [config.DRONE_MASS*config.g]*config.MPC_NUM_TIME_STEPS, mpc_dt)

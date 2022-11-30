@@ -1,6 +1,6 @@
 from gekko import GEKKO
 import numpy as np
-from curve_fitter import fit_snap_input, Trajectory3D, TrajectoryQuadrotor
+from traj_eval import TrajectoryPolynomial, TrajectoryQuadrotor
 from quaternion import quat_mult, quat_conj
 import os
 
@@ -181,30 +181,22 @@ class Problem:
     def solve(self, disp=False):
         self.m.solve(disp=disp)
 
+        p = np.array([self.p[0].value, self.p[1].value, self.p[2].value]).T
+        v = np.array([self.v[0].value, self.v[1].value, self.v[2].value]).T
+        dt = config.MPC_TIME_HORIZON / config.MPC_NUM_TIME_STEPS
+
         if config.MPC_USE_LINEAR_MODEL:
-            traj_components = []
+            a = np.array([self.a[0].value, self.a[1].value, self.a[2].value]).T
+            j = np.array([self.j[0].value, self.j[1].value, self.j[2].value]).T
+            s = (np.array([self.s[0].value, self.s[1].value, self.s[2].value]).T)[1:]
 
-            for d in range(3):
-                p = np.array(self.p[d].value)
-                v0 = self.v[d].value[0]
-                a0 = self.a[d].value[0]
-                j0 = self.j[d].value[0]
-                vN = self.v[d].value[config.MPC_NUM_TIME_STEPS]
-                aN = self.a[d].value[config.MPC_NUM_TIME_STEPS]
-                jN = self.j[d].value[config.MPC_NUM_TIME_STEPS]
-                dt = config.MPC_TIME_HORIZON / config.MPC_NUM_TIME_STEPS
-                traj_components.append(fit_snap_input(p, v0, a0, j0, vN, aN, jN, dt, config.MAX_SNAP, verbose=disp))
-
-            return Trajectory3D(*traj_components)
+            return TrajectoryPolynomial(p, v, a, j, s, dt)
 
         else:
-            p = np.array([self.p[0].value, self.p[1].value, self.p[2].value]).T
-            v = np.array([self.v[0].value, self.v[1].value, self.v[2].value]).T
             q = np.array([self.q[0].value, self.q[1].value, self.q[2].value, self.q[3].value]).T
             w = np.array([self.w[0].value, self.w[1].value, self.w[2].value]).T
             M_B = (np.array([self.m_B[0].value, self.m_B[1].value, self.m_B[2].value]).T)[1:]
             T = self.f_B.value[1:]
-            dt = config.MPC_TIME_HORIZON / config.MPC_NUM_TIME_STEPS
 
             return TrajectoryQuadrotor(p, v, q, w, M_B, T, dt)
 

@@ -171,6 +171,7 @@ class Controller:
         # step 6: compute M_B and T from omega_dot and tau
         M_B = J @ omega_dot # ignore the np.cross(-omega, J@omega) term for simplicity
         T = m * tau
+        # TODO check limits?
 
         self.plant.step(M_B, T)
 

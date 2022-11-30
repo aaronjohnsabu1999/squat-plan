@@ -21,7 +21,7 @@ KD_POS = np.array([10.0, 10.0, 10.0])
 g = 9.80665 # m/s^2
 
 DYNAMICS_DT = 0.01 # [s] Time step for dynamics simulation
-SIM_SPEED_FACTOR = 0.5 # Simulation speed. For example, 0.5 means run at 2x slow motion.
+SIM_SPEED_FACTOR = 1 # Simulation speed. For example, 1 means real-time, 0.5 means run at 2x slow motion.
 
 COLLISION_RADIUS = 0.5 # [m] Artificially increase all obtacles by this size
 SENSING_HORIZON = 5.0 # [m]

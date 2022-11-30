@@ -1,6 +1,7 @@
 import rospy
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point, PoseStamped
+import tf
 import numpy as np
 
 import config
@@ -8,20 +9,27 @@ import config
 markers = {'static': []}
 poses = {}
 pose_pubs = {}
+transforms = {}
 
 def init():
     global marker_pub
+    global transform_pub
     rospy.init_node('squat', anonymous=True)
     marker_pub = rospy.Publisher("/squat/marker", Marker, queue_size=10)
+    transform_pub = tf.TransformBroadcaster()
 
 def show_once():
     for ns in markers:
         for marker in markers[ns]:
             marker_pub.publish(marker)
+
     for name in poses:
         if not name in pose_pubs:
             pose_pubs[name] = rospy.Publisher("/squat/pose/" + name, PoseStamped, queue_size=10)
         pose_pubs[name].publish(poses[name])
+
+    for name in transforms:
+        transform_pub.sendTransform(transforms[name][0], transforms[name][1], rospy.Time.now(), name, "map")
 
 def show():
     while not rospy.is_shutdown():
@@ -162,6 +170,8 @@ def update_smooth_path(x, y, z):
 
 def update_vehicle(p, q, collision_r, sense_r, plan_r):
     x, y, z = p
+
+    transforms['body'] = (p, q)
 
     marker = new_marker('vehicle')
     make_ellipsoid(marker, x, y, z, collision_r, collision_r, collision_r)

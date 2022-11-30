@@ -20,8 +20,8 @@ from forester import genRandomForest
 
 # MAIN PROGRAM
 if __name__ == '__main__':
-  numStep = 200
-  totTime = 10
+  numStep = 100
+  totTime = 20.0
   maxIter = 1000
   solverParams  = {'numStep': numStep, 'totTime': totTime, 'maxIter': maxIter, 'set_QF': False, 'set_WF': False}
   
@@ -29,8 +29,8 @@ if __name__ == '__main__':
   J = np.diag([0.1, 0.1, 0.1])
   systemParams  = {'M': M, 'J': J}
   
-  P_I = [ 0,  0,  0]
-  P_F = [10, 10, 10]
+  P_I = [5.0,  0.0, 5.0]
+  P_F = [5.0, 40.0, 5.0]
   V_I = [ 0,  0,  0]
   V_F = [ 0,  0,  0]
   Q_I = [ 1,  0,  0,  0]
@@ -39,14 +39,14 @@ if __name__ == '__main__':
   W_F = [ 0,  0,  0]
   boundaryCons  = {'P_I': P_I, 'P_F': P_F, 'V_I': V_I, 'V_F': V_F, 'Q_I': Q_I, 'Q_F': Q_F, 'W_I': W_I, 'W_F': W_F}
   
-  K_f =  0.02
-  K_m = 10.00
+  K_f =  0.01
+  K_m = 20.00
   K_p =  0.00
   K_v =  0.00
   controlParams = {'K_f': K_f, 'K_m': K_m, 'K_p': K_p, 'K_v': K_v}
 
-  numObs = 16
-  minRad =  2.0
+  numObs =  0
+  minRad =  1.0
   maxRad =  0.5
   obstacles = genRandomForest(numObs, [P_I, P_F], maxRad, minRad, seed = 0)
   

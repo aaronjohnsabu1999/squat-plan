@@ -48,7 +48,7 @@ def trajopt(solverParams, systemParams, boundaryCons, controlParams, obstacles):
   W_F = boundaryCons['W_F']
   F_I = [0, 0, - M * 9.81]
   
-  m = GEKKO()
+  m = GEKKO(remote = True)
   m.time = np.linspace(0, totTime, numStep)
 
   p = [] # linear position
@@ -128,9 +128,9 @@ def trajopt(solverParams, systemParams, boundaryCons, controlParams, obstacles):
   K_p = controlParams['K_p']
   K_v = controlParams['K_v']
   m.Minimize(K_f*f_B[2]**2
-          + K_m*m_B[2]**2
-          + K_p*np.sum([(p[i]-P_F[i])**2 for i in range(len(p))])
-          + K_v*np.sum([(v[i]-V_F[i])**2 for i in range(len(v))]))
+           + K_m*np.sum([(m_B[i]     )**2 for i in range(len(m_B))])
+           + K_p*np.sum([(p[i]-P_F[i])**2 for i in range(len(p  ))])
+           + K_v*np.sum([(v[i]-V_F[i])**2 for i in range(len(v  ))]))
   
   m.options.IMODE  = 6 # control
   m.options.SOLVER = 3 # IPOPT
@@ -138,7 +138,7 @@ def trajopt(solverParams, systemParams, boundaryCons, controlParams, obstacles):
   # m.options.OTOL = 1e-4
   # m.options.RTOL = 1e-4
   try:
-    m.solve()
+    m.solve(disp = True)
     success = 1
   except:
     print('Failed to solve')

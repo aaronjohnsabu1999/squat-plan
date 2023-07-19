@@ -49,13 +49,12 @@ if __name__ == '__main__':
 
     ctrl = Controller(config.INIT_POS)
 
-    mpc_dt = config.MPC_TIME_HORIZON / config.MPC_NUM_TIME_STEPS
     if config.MPC_USE_LINEAR_MODEL:
         ref_state = np.array([config.INIT_POS, np.zeros(3), np.zeros(3), np.zeros(3)])
-        traj = TrajectoryPolynomial(*list([rs]*(config.MPC_NUM_TIME_STEPS+1) for rs in ref_state), [np.zeros(3)]*config.MPC_NUM_TIME_STEPS, mpc_dt) # zero-input initial trajectory
+        traj = TrajectoryPolynomial(*list([rs, rs] for rs in ref_state), [np.zeros(3)], config.MPC_TIME_HORIZON) # zero-input initial trajectory
     else:
         ref_state = [config.INIT_POS, np.zeros(3), np.array([1.0, 0.0, 0.0, 0.0]), np.zeros(3)]
-        traj = TrajectoryQuadrotor(*list([rs]*(config.MPC_NUM_TIME_STEPS+1) for rs in ref_state), [np.zeros(3)]*config.MPC_NUM_TIME_STEPS, [config.DRONE_MASS*config.g]*config.MPC_NUM_TIME_STEPS, mpc_dt)
+        traj = TrajectoryQuadrotor(*list([rs, rs] for rs in ref_state), [np.zeros(3)], [config.DRONE_MASS*config.g], config.MPC_TIME_HORIZON)
 
     new_traj = traj
     reached_traj_end = False

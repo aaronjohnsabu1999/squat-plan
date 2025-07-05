@@ -1,6 +1,6 @@
 # /***********************************************************
 # *                                                         *
-# * Copyright (c) 2022                                      *
+# * Copyright (c) 2025                                      *
 # *                                                         *
 # * Department of Mechanical and Aerospace Engineering      *
 # * University of California, Los Angeles                   *
@@ -10,9 +10,6 @@
 # *                                                         *
 # ***********************************************************/
 
-#!/usr/bin/env python3
-
-# FUNCTION DEFINITIONS
 def quat_mult(q_1, q_2):
     w_1, x_1, y_1, z_1 = q_1
     w_2, x_2, y_2, z_2 = q_2

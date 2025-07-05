@@ -1,6 +1,6 @@
 # /***********************************************************
 # *                                                         *
-# * Copyright (c) 2022                                      *
+# * Copyright (c) 2025                                      *
 # *                                                         *
 # * Department of Mechanical and Aerospace Engineering      *
 # * University of California, Los Angeles                   *
@@ -10,9 +10,6 @@
 # *                                                         *
 # ***********************************************************/
 
-#!/usr/bin/env python3
-
-# PACKAGE IMPORTS
 import numpy             as np
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d

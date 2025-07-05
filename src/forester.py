@@ -1,6 +1,6 @@
 # /***********************************************************
 # *                                                         *
-# * Copyright (c) 2022                                      *
+# * Copyright (c) 2025                                      *
 # *                                                         *
 # * Department of Mechanical and Aerospace Engineering      *
 # * University of California, Los Angeles                   *
@@ -10,8 +10,8 @@
 # *                                                         *
 # ***********************************************************/
 
-# PACKAGE IMPORTS
 import random
+
 from trajopt import Obstacle
 
 # FUNCTION DEFINITIONS

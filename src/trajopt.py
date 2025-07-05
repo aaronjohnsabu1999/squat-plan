@@ -1,6 +1,6 @@
 # /***********************************************************
 # *                                                         *
-# * Copyright (c) 2022                                      *
+# * Copyright (c) 2025                                      *
 # *                                                         *
 # * Department of Mechanical and Aerospace Engineering      *
 # * University of California, Los Angeles                   *
@@ -10,11 +10,9 @@
 # *                                                         *
 # ***********************************************************/
 
-#!/usr/bin/env python3
+import numpy as np
+from gekko import GEKKO
 
-# PACKAGE IMPORTS
-import numpy    as np
-from gekko      import GEKKO
 from quaternion import quat_mult, quat_conj
 
 # CLASS DEFINITIONS

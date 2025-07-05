@@ -1,8 +1,17 @@
-#!/usr/bin/env python3
+# /***********************************************************
+# *                                                         *
+# * Copyright (c) 2025                                      *
+# *                                                         *
+# * Department of Mechanical and Aerospace Engineering      *
+# * University of California, Los Angeles                   *
+# *                                                         *
+# * Authors: Aaron John Sabu, Ryan Nemiroff, Brett T. Lopez *
+# * Contact: {aaronjs, ryguyn, btlopez}@ucla.edu             *
+# *                                                         *
+# ***********************************************************/
 
 from gekko import GEKKO
 import numpy as np
-
 import rospy
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point

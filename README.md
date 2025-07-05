@@ -1,2 +1,4 @@
-# squat-plan
-Smooth QUadrotor Agile Trajectory PLANning
+# Smooth Quadrotor Agile Trajectory Planning (SQuAT Plan)
+
+# License
+This project is licensed under the MIT License. See [LICENSE](./LICENSE) for details.

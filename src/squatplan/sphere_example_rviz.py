@@ -6,15 +6,16 @@
 # * University of California, Los Angeles                   *
 # *                                                         *
 # * Authors: Aaron John Sabu, Ryan Nemiroff, Brett T. Lopez *
-# * Contact: {aaronjs, ryguyn, btlopez}@ucla.edu             *
+# * Contact: {aaronjs, ryguyn, btlopez}@ucla.edu            *
 # *                                                         *
 # ***********************************************************/
 
-from gekko import GEKKO
-import numpy as np
 import rospy
-from visualization_msgs.msg import Marker
+import numpy as np
+from gekko import GEKKO
 from geometry_msgs.msg import Point
+from visualization_msgs.msg import Marker
+
 
 def make_marker_sphere(id, x, y, z, r):
     marker = Marker()
@@ -27,9 +28,9 @@ def make_marker_sphere(id, x, y, z, r):
     marker.id = id
 
     # Set the scale of the marker
-    marker.scale.x = r*2
-    marker.scale.y = r*2
-    marker.scale.z = r*2
+    marker.scale.x = r * 2
+    marker.scale.y = r * 2
+    marker.scale.z = r * 2
 
     # Set the color
     marker.color.r = 1.0
@@ -47,6 +48,7 @@ def make_marker_sphere(id, x, y, z, r):
     marker.pose.orientation.w = 1.0
 
     return marker
+
 
 def make_marker_path(id, x, y, z):
     marker = Marker()
@@ -81,18 +83,19 @@ def make_marker_path(id, x, y, z):
 
     return marker
 
-rospy.init_node('squat', anonymous=True)
+
+rospy.init_node("squat", anonymous=True)
 marker_pub = rospy.Publisher("/squat/marker", Marker, queue_size=100)
 
 m = GEKKO()
 nt = 51
 m.time = np.linspace(0, 10, nt)
 
-a = [] # acceleration (control input)
-v = [] # velocity
-p = [] # position
-p_f = [] # final position
-v_f = [] # final velocity
+a = []  # acceleration (control input)
+v = []  # velocity
+p = []  # position
+p_f = []  # final position
+v_f = []  # final velocity
 
 # 3D
 for _ in range(3):
@@ -106,27 +109,26 @@ for _ in range(3):
     m.Equation(v[-1].dt() == a[-1])
 
     # set up end constraints
-    p_f.append(m.Var()) # should be FV instead of Var but doesn't work for some reason
-    m.Connection(p[-1], p_f[-1], 'end', 'end')
+    p_f.append(m.Var())  # should be FV instead of Var but doesn't work for some reason
+    m.Connection(p[-1], p_f[-1], "end", "end")
     v_f.append(m.Var())
-    m.Connection(v[-1], v_f[-1], 'end', 'end')
+    m.Connection(v[-1], v_f[-1], "end", "end")
 
 # end constraints
 m.Equations((p_f[0] == 10, p_f[1] == 10, p_f[2] == 10))
 m.Equations(vf == 0 for vf in v_f)
 
 # spherical obstacles
-spheres = [
-    (1, 1, 1, 1), # x, y, z, r
-    (8, 8, 8, 2)
-]
+spheres = [(1, 1, 1, 1), (8, 8, 8, 2)]  # x, y, z, r
 for s in spheres:
-    m.Equation((p[0]-s[0])**2 + (p[1]-s[1])**2 + (p[2]-s[2])**2 >= s[3]**2)
+    m.Equation(
+        (p[0] - s[0]) ** 2 + (p[1] - s[1]) ** 2 + (p[2] - s[2]) ** 2 >= s[3] ** 2
+    )
 
 # minimize control input
-m.Minimize(a[0]**2 + a[1]**2 + a[2]**2)
+m.Minimize(a[0] ** 2 + a[1] ** 2 + a[2] ** 2)
 
-m.options.IMODE = 6 # control
+m.options.IMODE = 6  # control
 m.solve()
 
 # get additional solution information

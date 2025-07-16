@@ -22,13 +22,13 @@ class TrajOpt:
         solver_params,
         system_params,
         boundary_conditions,
-        controls_params,
+        control_params,
         obstacles,
     ):
         self.solver_params = solver_params
         self.system_params = system_params
         self.boundary_conditions = boundary_conditions
-        self.controls_params = controls_params
+        self.control_params = control_params
         self.obstacles = obstacles
 
     def run(self):
@@ -115,7 +115,7 @@ class TrajOpt:
 
         obstacle_check = True
         if obstacle_check:
-            for obstacle in obstacles:
+            for obstacle in self.obstacles:
                 eqs.append(obstacle.function(p[0], p[1], p[2]) >= 0)
         eqs = m.Equations(eqs)
 
@@ -142,7 +142,7 @@ class TrajOpt:
 
         m.options.IMODE = 6  # control
         m.options.SOLVER = 3  # IPOPT
-        m.options.MAX_ITER = maxIter
+        m.options.MAX_ITER = max_iter
         # m.options.OTOL = 1e-4
         # m.options.RTOL = 1e-4
         try:
@@ -154,23 +154,23 @@ class TrajOpt:
 
         force, mom, pos, vel, omg, quat = [], [], [], [], [], []
         if success:
-            force.append([f_B[2].value[k] for k in range(numStep)])
+            force.append([f_B[2].value[k] for k in range(num_steps)])
             for i in range(3):
-                mom.append([m_B[i].value[k] for k in range(numStep)])
-                pos.append([p[i].value[k] for k in range(numStep)])
-                vel.append([v[i].value[k] for k in range(numStep)])
-                omg.append([w[i].value[k] for k in range(numStep)])
+                mom.append([m_B[i].value[k] for k in range(num_steps)])
+                pos.append([p[i].value[k] for k in range(num_steps)])
+                vel.append([v[i].value[k] for k in range(num_steps)])
+                omg.append([w[i].value[k] for k in range(num_steps)])
             for i in range(4):
-                quat.append([q[i].value[k] for k in range(numStep)])
+                quat.append([q[i].value[k] for k in range(num_steps)])
 
         else:
-            force.append([0 for k in range(numStep)])
+            force.append([0 for k in range(num_steps)])
             for i in range(3):
-                mom.append([0 for k in range(numStep)])
-                pos.append([0 for k in range(numStep)])
-                vel.append([0 for k in range(numStep)])
-                omg.append([0 for k in range(numStep)])
+                mom.append([0 for k in range(num_steps)])
+                pos.append([0 for k in range(num_steps)])
+                vel.append([0 for k in range(num_steps)])
+                omg.append([0 for k in range(num_steps)])
             for i in range(4):
-                quat.append([0 for k in range(numStep)])
+                quat.append([0 for k in range(num_steps)])
 
         return m.time, force, mom, pos, vel, omg, quat

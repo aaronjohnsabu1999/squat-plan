@@ -20,8 +20,8 @@ from squatplan.obstacle import gen_random_forest
 def main():
     # Solver configuration
     solver_params = {
-        "num_steps": 100,
-        "total_time": 20.0,
+        "num_steps": 200,
+        "total_time": 10.0,
         "max_iter": 1000,
         "set_QF": False,
         "set_WF": False,
@@ -35,8 +35,8 @@ def main():
 
     # Boundary conditions
     boundary_conditions = {
-        "P_I": [5.0, 0.0, 5.0],
-        "P_F": [5.0, 40.0, 5.0],
+        "P_I": [0.0, 0.0, 0.0],
+        "P_F": [10.0, 10.0, 10.0],
         "V_I": [0, 0, 0],
         "V_F": [0, 0, 0],
         "Q_I": [1, 0, 0, 0],
@@ -47,18 +47,18 @@ def main():
 
     # Control weights
     control_params = {
-        "K_f": 0.01,
-        "K_m": 20.0,
+        "K_f": 0.02,
+        "K_m": 10.0,
         "K_p": 0.0,
         "K_v": 0.0,
     }
 
     # Generate obstacles
     obstacles = gen_random_forest(
-        num_obstacles=0,
+        num_obstacles=16,
         boundary_points=[boundary_conditions["P_I"], boundary_conditions["P_F"]],
-        max_radius=0.5,
-        min_radius=1.0,
+        min_radius=0.5,
+        max_radius=2.0,
         seed=0,
     )
 
